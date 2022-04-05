@@ -14,12 +14,12 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
-const interval = 250 * time.Millisecond
+const interval = 350 * time.Millisecond
 const timeout = 500 * time.Millisecond
 
 func Transmitter(port int, id string, transmitEnable <-chan bool) {
 
-	nodeUpdateTx := make(chan nodeConfig.Node)
+	nodeUpdateTx := make(chan *nodeConfig.Node)
 	go bcast.Transmitter(port, nodeUpdateTx)
 	enable := true
 	for {
@@ -44,7 +44,7 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 				// 		}
 				// 	}
 				// }
-				nodeUpdateTx <- *node
+				nodeUpdateTx <- node
 			}
 		}
 	}
@@ -55,8 +55,8 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 	var p PeerUpdate
 	lastSeen := make(map[string]time.Time)
 
-	nodeUpdateRx := make(chan nodeConfig.Node)
-	go bcast.Receiver(port, 0, nodeUpdateRx)
+	nodeUpdateRx := make(chan *nodeConfig.Node)
+	go bcast.Receiver(port, interval, nodeUpdateRx)
 
 	for {
 		updated := false
@@ -90,7 +90,7 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 					// }
 				}
 			} else {
-				OnNewNode(nodeUpdate)
+				OnNewNode(*nodeUpdate)
 			}
 		case <-time.After(interval - 100*time.Millisecond):
 		}

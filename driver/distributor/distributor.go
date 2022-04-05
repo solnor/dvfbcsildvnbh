@@ -89,7 +89,6 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 	for {
 		select {
 		case order := <-orderCh:
-			// fmt.Printf("??? %q\n", order)
 			orderTx <- order
 		case p := <-peerUpdateCh:
 			fmt.Println("Got peer update:")
@@ -100,9 +99,7 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 
 		case order := <-orderRx:
 			currentOrder := localOrders[order.Request.Floor][order.Request.Button]
-			// fmt.Printf("%p\n", &currentOrder)
 			currentState := currentOrder.State
-			// lastState := currentOrder.State
 			if currentOrder.State == nodeConfig.Order_Cleared && order.State == nodeConfig.Order_New {
 				fmt.Printf("[%s]: new order\n", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 				currentOrder.State = nodeConfig.Order_New
@@ -126,7 +123,6 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 					} else {
 						currentOrder.State = nodeConfig.Order_Confirmed
 						currentOrder.Acks = append(currentOrder.Acks, id)
-						// trackingOrder := updateOrderToTrack(currentOrder)
 						trackConfirmedNode <- currentOrder
 						fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 						fmt.Println("Sent order to tracker from assigned id")
@@ -243,17 +239,8 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 					confirmedOrder <- makeOrderEvent(flr, btn, true) // TODO: Should only be set once
 
 					if time.Since(TimeOfButtonPress) > time.Duration(1000)*time.Millisecond {
-						// if node.Available && node.Elevator.Requests[flr][btn] == 0 {
-						// 	order.State = nodeConfig.Order_Cleared
-						// 	fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-						// 	fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
-						// }
-						// var n nodeConfig.Node
-						// fmt.Println(n.Available)
-						// fmt.Println("Imellom")
 
-						//Each
-
+						//Each node sends its own data - if request is zero at floor
 						if node.Available && node.Elevator.Requests[flr][btn] == 0 {
 							order.State = nodeConfig.Order_Cleared
 							orderUpdated = true
@@ -264,7 +251,7 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 
 					}
 				}
-				// fmt.Println(time.Duration(reassignTime*1000) * time.Millisecond)
+
 				if time.Since(TimeOfButtonPress) > time.Duration(reassignTime*1000)*time.Millisecond {
 					fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 					fmt.Printf("Reassigned order at floor %d, btn: %d \n", flr, btn)
@@ -280,18 +267,16 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 				clearedOrder := confirmedOrders[iterator]
 				confirmedOrders = remove(confirmedOrders, iterator)
 				orderCleared <- clearedOrder
-			} // localOrders[flr][btn] = order
+			}
 			if orderReassigned {
 				order.State = nodeConfig.Order_Cleared
 				confirmedOrders[iterator] = order
-				// clearedOrder := confirmedOrders[iterator]
 				confirmedOrders = remove(confirmedOrders, iterator)
 				reassignCh <- order.Request
 			}
 			time.Sleep(150 * time.Millisecond)
 		}
 	}
-
 }
 
 func getReassignmentTimeout(order nodeConfig.Order) int64 {
@@ -313,9 +298,7 @@ func makeOrderEvent(flr int, btn elevConfig.ButtonType, confirmed bool) nodeConf
 }
 
 func remove(s []nodeConfig.Order, i int) []nodeConfig.Order {
-	s[i] = s[len(s)-1] // Copy last element to index i.
-	// s[len(s)-1] = ""    // Erase last element (write zero value).
-	return s[:len(s)-1] // Truncate slice.
-	// s[i] = s[len(s)-1]
-	// return s[:len(s)-1]
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+
 }

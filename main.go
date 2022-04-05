@@ -2,7 +2,13 @@ package main
 
 import (
 	"driver/driver"
+	"elevator/config"
+	"elevator/elevio"
+	"elevator/fsm"
+	"flag"
 	"fmt"
+	"os"
+	"strconv"
 	// "elevator/config"
 	// "elevator/elevio"
 	// // . "elevator/requests"
@@ -13,53 +19,21 @@ import (
 
 func main() {
 	fmt.Printf("Startup\n")
-	// driver.Drive()
-	driver.Elevator_Run()
-	// elevio.Init("localhost:15657", config.NumFloors)
-	// fsm.Fsm_init()
+	///Declaring variables and default data
+	var id string
+	var port string
 
-	// var doorTimeout = make(chan bool)
-	// drv_buttons := make(chan config.ButtonEvent)
-	// drv_floors := make(chan int)
-	// drv_obstr := make(chan bool)
-	// drv_stop := make(chan bool)
+	defaultID := strconv.Itoa(os.Getpid())
+	defaultPort := "15657"
 
-	// go elevio.PollButtons(drv_buttons)
-	// go elevio.PollFloorSensor(drv_floors)
-	// go elevio.PollObstructionSwitch(drv_obstr)
-	// go elevio.PollStopButton(drv_stop)
-	// go timer.Observer(doorTimeout)
+	flag.StringVar(&id, "id", defaultID, "ID")
+	flag.StringVar(&port, "port", defaultPort, "Set port for this node. Default value set as 15657")
+	flag.Parse()
 
-	// if elevio.GetFloor() == -1 {
-	// 	elevio.SetMotorDirection(config.MD_Down)
-	// 	fsm.Elevator1.Dirn = config.MD_Down
-	// 	fsm.Elevator1.Behaviour = config.EB_Moving
-	// }
+	elevio.Init("localhost:"+port, config.NumFloors)
+	fmt.Println("Done with elevio init")
+	fsm.Fsm_init()
 
-	// for {
-	// 	select {
-	// 	case a := <-drv_buttons:
-	// 		fsm.Fsm_onRequestButtonPress(a.Floor, a.Button)
-	// 	case a := <-drv_floors:
-	// 		fsm.Fsm_onFloorArrival(a)
-
-	// 	case a := <-drv_obstr:
-	// 		fmt.Printf("%+v\n", a)
-	// 		if a {
-	// 			fsm.Elevator1.Obstruction = true
-	// 		} else {
-	// 			fsm.Elevator1.Obstruction = false
-	// 		}
-
-	// 	case a := <-drv_stop:
-	// 		fmt.Printf("%+v\n", a)
-	// 		for f := 0; f < config.NumFloors; f++ {
-	// 			for b := config.ButtonType(0); b < 3; b++ {
-	// 				elevio.SetButtonLamp(b, f, false)
-	// 			}
-	// 		}
-	// 	case <-doorTimeout:
-	// 		fsm.Fsm_onDoorTimeout()
-	// 	}
-	// }
+	fmt.Printf("ID set to: %v. Port set to: %v \n", id, port)
+	driver.Elevator_Run(id)
 }

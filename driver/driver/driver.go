@@ -9,33 +9,12 @@ import (
 	"elevator/elevio"
 	fsm "elevator/fsm"
 	"elevator/timer"
-	"flag"
 	"fmt"
 	"network/peers"
-	"os"
-	"runtime"
-	"strconv"
 )
 
-func Elevator_Run() {
-	runtime.GOMAXPROCS(100)
-	///Declaring variables and default data
-	var id string
-	var port string
+func Elevator_Run(id string) {
 
-	defaultID := strconv.Itoa(os.Getpid())
-	defaultPort := "15657"
-
-	//go run main.go -id "ID" -port "PORT"
-	flag.StringVar(&id, "id", defaultID, "ID")
-	flag.StringVar(&port, "port", defaultPort, "Set port for this node. Default value set as 15657")
-	flag.Parse()
-
-	elevio.Init("localhost:"+port, config.NumFloors)
-	fmt.Println("Done with elevio init")
-	fsm.Fsm_init()
-
-	fmt.Printf("ID set to: %v. Port set to: %v \n", id, port)
 	// backup.BackupInit(id, port)
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -57,11 +36,6 @@ func Elevator_Run() {
 		fsm.ThisElevator.Behaviour = config.EB_Moving
 	}
 	nodeConfig.Node_Init(id)
-	// ThisNode := nodeConfig.NewNode(id)
-	// ThisNode.Elevator = fsm.Elevator1
-	// // nodeConfig.KnownNodes = make(map[string])
-	// // nodeConfig.KnownNodes = append(nodeConfig.KnownNodes, &thisNode) //MOVE THIS
-	// nodeConfig.KnownNodesTable[id] = &ThisNode
 
 	peerTxEnable := make(chan bool)
 	peerUpdateCh := make(chan peers.PeerUpdate)
@@ -76,12 +50,9 @@ func Elevator_Run() {
 	orderCleared := make(chan nodeConfig.Order, 15)
 	trackOrder := make(chan nodeConfig.Order)
 
-	// go assigner.AssignOrder(nodeUpdateCh, buttonE, orderAssignment, id)
 	go assigner.AssignOrder(id, assignRequest, reassginOrder, assignedOrder)
 	go distributor.Distribute(id, assignedOrder, reassginOrder, orderRx, peerUpdateCh, orderUpdate, trackOrder, orderCleared)
 	go distributor.TrackOrders(trackOrder, orderCleared, orderUpdate, reassginOrder)
-	// orderRx := make(chan nodeConfig.Order)
-	// go distributor.ReceiveOrder(orderRx)
 
 	go peers.Transmitter(15647, id, peerTxEnable)
 	go peers.Receiver(15647, id, peerUpdateCh, nodeUpdateCh)
