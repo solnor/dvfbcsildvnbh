@@ -57,7 +57,7 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 	lastSeen := make(map[string]time.Time)
 
 	nodeUpdateRx := make(chan *nodeConfig.Node)
-	go bcast.Receiver(port, interval, nodeUpdateRx)
+	go bcast.Receiver(port, 0, nodeUpdateRx)
 
 	for {
 		updated := false
