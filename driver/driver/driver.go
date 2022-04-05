@@ -9,12 +9,31 @@ import (
 	"elevator/elevio"
 	fsm "elevator/fsm"
 	"elevator/timer"
+	"flag"
 	"fmt"
 	"network/peers"
+	"os"
+	"strconv"
+	"time"
 )
 
-func Elevator_Run(id string) {
+func Elevator_Run() {
+	///Declaring variables and default data
+	var id string
+	var port string
 
+	defaultID := strconv.Itoa(os.Getpid())
+	defaultPort := "15657"
+
+	flag.StringVar(&id, "id", defaultID, "ID")
+	flag.StringVar(&port, "port", defaultPort, "Set port for this node. Default value set as 15657")
+	flag.Parse()
+
+	elevio.Init("localhost:"+port, config.NumFloors)
+	fmt.Println("Done with elevio init")
+	fsm.Fsm_init()
+
+	fmt.Printf("ID set to: %v. Port set to: %v \n", id, port)
 	// backup.BackupInit(id, port)
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -54,6 +73,7 @@ func Elevator_Run(id string) {
 	go distributor.Distribute(id, assignedOrder, reassginOrder, orderRx, peerUpdateCh, orderUpdate, trackOrder, orderCleared)
 	go distributor.TrackOrders(trackOrder, orderCleared, orderUpdate, reassginOrder)
 
+	time.Sleep(1 * time.Second)
 	go peers.Transmitter(15647, id, peerTxEnable)
 	go peers.Receiver(15647, id, peerUpdateCh, nodeUpdateCh)
 

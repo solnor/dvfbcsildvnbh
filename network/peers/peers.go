@@ -3,7 +3,6 @@ package peers
 import (
 	nodeConfig "driver/config"
 	"elevator/fsm"
-	"fmt"
 	"network/bcast"
 	"sort"
 	"time"
@@ -68,7 +67,6 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 			nodeConfig.KnownNodesMutex.RLock()
 			node := nodeConfig.KnownNodesTable[string(id)]
 			nodeConfig.KnownNodesMutex.RUnlock()
-			fmt.Println(node.Elevator.Requests)
 			if node != nil {
 				if node.Id == thisId {
 					nodeConfig.KnownNodesMutex.Lock()
