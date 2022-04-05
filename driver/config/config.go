@@ -39,14 +39,12 @@ func NewNode(id string) Node {
 }
 
 type Order struct {
-	// MessageFrom string
 	SenderId   string
 	AssignedId string
 	Request    elevConfig.ButtonEvent
 	Timestamp  time.Time
 	Cost       int64
 	Acks       []string
-	// OneAckIsEnough bool
 	State OrderType
 }
 
@@ -71,15 +69,7 @@ const (
 	Order_Confirmed = 2
 )
 
-// type[new, ack, confirmed, cleared]
-
 type Acks struct {
 	NodeId string
 	AckId  int
 }
-
-// func FindNodeWithId(id string) Node {
-// 	for _,node := range(KnownNodes) {
-
-// 	}
-// }

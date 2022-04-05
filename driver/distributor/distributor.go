@@ -239,6 +239,9 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 				node := nodeConfig.KnownNodesTable[order.AssignedId]
 				nodeConfig.KnownNodesMutex.RUnlock()
 				if node != nil {
+
+					fmt.Println(node.Elevator.Requests)
+
 					confirmedOrder <- makeOrderEvent(flr, btn, true) // TODO: Should only be set once
 					// && time.Since(TimeOfButtonPress) < time.Duration(reassignTime*1000)*time.Millisecond
 
@@ -253,7 +256,8 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 						// fmt.Println("Imellom")
 
 						//Each
-						if node.Available && node.Elevator.Requests[flr][btn] == 1 {
+
+						if node.Available && node.Elevator.Requests[flr][btn] == 0 {
 							order.State = nodeConfig.Order_Cleared
 							orderUpdated = true
 							fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))

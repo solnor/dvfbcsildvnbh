@@ -59,7 +59,7 @@ const (
 type Elevator struct {
 	Floor       int
 	Dirn        MotorDirection
-	Requests    [][3]int // Soiajsojdaoisdhoasdhnasiudbaisudhaodbsaasdasd
+	Requests    [][3]int
 	Behaviour   ElevatorBehaviour
 	Obstruction bool
 

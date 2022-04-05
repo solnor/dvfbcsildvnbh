@@ -35,15 +35,15 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 			if node != nil {
 				node.Elevator = fsm.ThisElevator
 
-				for floor, floors := range node.Elevator.Requests {
-					for button, _ := range floors {
-						if node.Elevator.Requests[floor][button] == 1 {
-							node.Elevator.Requests[floor][button] = 0
-						} else {
-							node.Elevator.Requests[floor][button] = 1
-						}
-					}
-				}
+				// for floor, floors := range node.Elevator.Requests {
+				// 	for button, _ := range floors {
+				// 		if node.Elevator.Requests[floor][button] == 1 {
+				// 			node.Elevator.Requests[floor][button] = 0
+				// 		} else {
+				// 			node.Elevator.Requests[floor][button] = 1
+				// 		}
+				// 	}
+				// }
 				nodeUpdateTx <- *node
 			}
 		}
