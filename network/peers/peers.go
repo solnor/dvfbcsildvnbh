@@ -68,8 +68,9 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 			nodeConfig.KnownNodesMutex.RLock()
 			node := nodeConfig.KnownNodesTable[string(id)]
 			nodeConfig.KnownNodesMutex.RUnlock()
-			fmt.Println(node.Elevator.Requests)
+
 			if node != nil {
+				fmt.Println(node.Elevator.Requests)
 				if node.Id == thisId {
 					nodeConfig.KnownNodesMutex.Lock()
 					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
