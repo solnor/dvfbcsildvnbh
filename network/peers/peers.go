@@ -3,7 +3,6 @@ package peers
 import (
 	nodeConfig "driver/config"
 	"elevator/fsm"
-	"fmt"
 	"network/bcast"
 	"sort"
 	"time"
@@ -16,7 +15,7 @@ type PeerUpdate struct {
 }
 
 const interval = 250 * time.Millisecond
-const timeout = 100 * time.Millisecond
+const timeout = 150 * time.Millisecond
 
 func Transmitter(port int, id string, transmitEnable <-chan bool) {
 
@@ -43,7 +42,6 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 }
 
 func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdateCh chan<- nodeConfig.Node) {
-	// var buf [1024]byte
 	var p PeerUpdate
 	lastSeen := make(map[string]time.Time)
 
@@ -66,17 +64,25 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 					nodeConfig.KnownNodesMutex.Unlock()
 				} else {
 					if node.Available {
-						fmt.Println("Test!")
 						nodeConfig.KnownNodesMutex.Lock()
 						nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
 						nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
+						nodeConfig.KnownNodesMutex.Unlock()
+					} else {
+						nodeConfig.KnownNodesMutex.Lock()
+						nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
+						// for floor, floors := range Elevator {
+						// 	for button, _ := range floors {
+						// 	}
+						// }
+						// nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
 						nodeConfig.KnownNodesMutex.Unlock()
 					}
 				}
 			} else {
 				OnNewNode(nodeUpdate)
 			}
-		case <-time.After(interval - 50*time.Millisecond):
+		case <-time.After(interval - 100*time.Millisecond):
 		}
 
 		p.New = ""
