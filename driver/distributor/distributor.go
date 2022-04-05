@@ -253,7 +253,7 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 						// fmt.Println("Imellom")
 
 						//Each
-						if node.Available && node.Elevator.Requests[flr][btn] == 0 {
+						if node.Available && node.Elevator.Requests[flr][btn] == 1 {
 							order.State = nodeConfig.Order_Cleared
 							orderUpdated = true
 							fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
