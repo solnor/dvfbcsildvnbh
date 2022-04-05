@@ -278,7 +278,7 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 					// 	fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 					// 	fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
 					// }
-					if node.Available && node.Elevator.Floor == order.Request.Floor {
+					if node.Available && node.Elevator.Requests[flr][btn] == 0 {
 						order.State = nodeConfig.Order_Cleared
 						fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 						fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)

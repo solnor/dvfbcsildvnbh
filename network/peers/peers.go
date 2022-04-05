@@ -58,8 +58,7 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 
 }
 
-func Receiver(port int, peerUpdateCh chan<- PeerUpdate, nodeUpdateCh chan<- nodeConfig.Node) {
-
+func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdateCh chan<- nodeConfig.Node) {
 	// var buf [1024]byte
 	var p PeerUpdate
 	lastSeen := make(map[string]time.Time)
@@ -69,6 +68,7 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate, nodeUpdateCh chan<- node
 
 	// conn := conn.DialBroadcastUDP(port)
 	for {
+		// fmt.Printf("Known nodes: %q\n", nodeConfig.KnownNodes)
 		updated := false
 
 		// conn.SetReadDeadline(time.Now().Add(interval))
@@ -88,12 +88,15 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate, nodeUpdateCh chan<- node
 			if nodeIsKnown {
 				// fmt.Printf("From main.Receiver: id: %s, n.Floor: %d\n", n.Id, n.Elevator.Floor) //n) //n.Elevator.Floor)
 				nodeToUpdate, _, _ := GetNodeWithId(n.Id)
+				if nodeToUpdate.Id != thisId {
+					*nodeToUpdate = n
+				}
 				// fmt.Printf()
-				*nodeToUpdate = n
+
 			} else {
 				OnNewNode2(n)
 			}
-			nodeUpdateCh <- n
+			// nodeUpdateCh <- n
 		case <-time.After(interval - 50*time.Millisecond):
 		}
 		// id := string(buf[:n])
@@ -126,7 +129,9 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate, nodeUpdateCh chan<- node
 		}
 		for _, peer := range p.Peers {
 			node, _, _ := GetNodeWithId(peer)
-			node.Available = true
+			if node.Id != thisId {
+				node.Available = true
+			}
 		}
 
 		// Sending update
@@ -143,6 +148,7 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate, nodeUpdateCh chan<- node
 		}
 		// fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 		// fmt.Println("SOIJDIOASJDAOISD")
+		// fmt.Printf("BOTTOM OF PEERS Known nodes: %q\n", nodeConfig.KnownNodes)
 		time.Sleep(100 * time.Millisecond)
 	}
 }

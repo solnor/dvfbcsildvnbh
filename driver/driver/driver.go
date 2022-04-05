@@ -4,6 +4,7 @@ import (
 	"driver/assigner"
 	nodeConfig "driver/config"
 	"driver/distributor"
+	wd "driver/watchdog"
 	"elevator/config"
 	"elevator/elevio"
 	fsm "elevator/fsm"
@@ -12,11 +13,12 @@ import (
 	"fmt"
 	"network/peers"
 	"os"
+	"runtime"
 	"strconv"
 )
 
 func Elevator_Run() {
-
+	runtime.GOMAXPROCS(100)
 	///Declaring variables and default data
 	var id string
 	var port string
@@ -28,7 +30,6 @@ func Elevator_Run() {
 	flag.StringVar(&id, "id", defaultID, "ID")
 	flag.StringVar(&port, "port", defaultPort, "Set port for this node. Default value set as 15657")
 	flag.Parse()
-
 
 	elevio.Init("localhost:"+port, config.NumFloors)
 	fmt.Println("Done with elevio init")
@@ -72,13 +73,13 @@ func Elevator_Run() {
 	// go distributor.ReceiveOrder(orderRx)
 
 	go peers.Transmitter(15647, id, peerTxEnable)
-	go peers.Receiver(15647, peerUpdateCh, nodeUpdateCh)
+	go peers.Receiver(15647, id, peerUpdateCh, nodeUpdateCh)
 
-	// go wd.Watchdog(&fsm.Elevator1)
+	go wd.Watchdog(&fsm.Elevator1)
 	fmt.Println("For loop:")
 	for {
 		select {
-		case <-nodeUpdateCh:
+		// case <-nodeUpdateCh:
 		// case n := <-nodeUpdateCh:
 		// nodeIsKnown := false
 		// for _, node := range driverConfig.KnownNodes {
@@ -117,7 +118,6 @@ func Elevator_Run() {
 			if a.Button == 2 {
 				fsm.Fsm_onRequestButtonPress(a.Floor, a.Button)
 			} else {
-				fmt.Println("button")
 				buttonE <- a
 
 			}

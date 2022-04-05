@@ -33,6 +33,7 @@ func Transmitter(port int, chans ...interface{}) {
 			JSON:   jsonstr,
 		})
 		conn.WriteTo(ttj, addr)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -68,6 +69,7 @@ func Receiver(port int, readDeadline time.Duration, chans ...interface{}) {
 			Chan: reflect.ValueOf(ch),
 			Send: reflect.Indirect(v),
 		}})
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
