@@ -3,6 +3,7 @@ package peers
 import (
 	nodeConfig "driver/config"
 	"elevator/fsm"
+	"fmt"
 	"network/bcast"
 	"sort"
 	"time"
@@ -15,7 +16,7 @@ type PeerUpdate struct {
 }
 
 const interval = 250 * time.Millisecond
-const timeout = 500 * time.Millisecond
+const timeout = 100 * time.Millisecond
 
 func Transmitter(port int, id string, transmitEnable <-chan bool) {
 
@@ -65,6 +66,7 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 					nodeConfig.KnownNodesMutex.Unlock()
 				} else {
 					if node.Available {
+						fmt.Println("Test!")
 						nodeConfig.KnownNodesMutex.Lock()
 						nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
 						nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
