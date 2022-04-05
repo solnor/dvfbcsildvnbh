@@ -1,0 +1,196 @@
+
+var knownNodes = make([]elevatorData, 1)
+
+func onNewNode(node PeerUpdate) {
+	if peer.New not in peer.Peers {
+		e = createNewNode(peer.New)
+		knownNodes = append(knownNodes, e)
+	} else {
+		e, error  = getNodeWithId(peer.New)
+		if error != nil {
+			fmt.Printf("Error: Could not find elevator with id %s", peer.New)
+			// In case ID is known, but no elevator is associated with the id: Create new node with ID
+			e = createNewNode(peer.New)
+			knownNodes = append(knownNodes, e)
+		}
+		// e.undefined = setNodeDataUndefined(e)
+		e.connected = true
+		e.defined = true
+	}
+}
+
+func getNodeWithId(id String) (elevator.Elevator, error Int) { //See how go functions return errors
+	for node in knownNodes {
+		if node.id == id
+		return (node, nil)
+	}
+	return (nil,1) // Probably not right
+}
+	
+func onLostNode(node PeerUpdate) {
+	e = getNodeWithId(peer.Lost)
+	e.connected = false
+	e.defined = false
+	hallCalls = make(int, 2)
+	for order in e.Requests { //Requests should be renamed to orders
+		for direction := 0; direction < 2 {
+			hallCall = Requests[order][:direction]
+			someChannelThatTakesInNewOrders <- hallCall
+		}
+	}
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+I'm thinking this should be incorporated into the peers.go file, and that the file perhaps should be renamed - maybe, maybe not 
+
+type Elevator struct {
+	Floor       int
+	Dirn        MotorDirection
+	Requests    [][3]int // Soiajsojdaoisdhoasdhnasiudbaisudhaodbsaasdasd
+	Behaviour   ElevatorBehaviour
+	Obstruction bool
+
+	Config Config
+}
+
+type elevatorData struct {
+	id        String
+	elevator  Elevator
+	defined   bool
+	connected bool
+	What else???
+}
+
+When Obstruction has been on for a while, orders should be reassigned
+
+//Routine
+func distributeInformation() {
+	// InformationTx is a very vague name
+	informationTx := make(chan elevatorData) // Define what elevatorData is
+	go bcast.Transmitter(20001, informationTx)
+	for {
+		informationTx <- e.elevatorData
+		time.Sleep(DISTRIBUTE_RATE * time.Second)
+	}
+}
+
+func onReceivedInformation(id String, data elevatorData) {
+	e, error = getNodeWithId(id)
+	if error != nil {
+		// Do some error HANDLING - not sure what the correct approach to this is at the moment
+	}
+	e.defined = true
+	e = setElevatorData(elevatorData)
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+type Order struct {
+	floor int
+	button ButtonType
+}
+
+type cost struct {
+	elevator config.Elevator
+	cost int
+}
+
+func assignOrderToElevator(order Requests) String {// Requests should be renamed
+	var costList = make([]cost, NumConnectedElevators) // Find NumConnectedElevators from knownNodes somehow
+	for node in knownNodes {
+		e = getNodeWithId(connectedNodes[node])
+		if e.defined && e.connected {
+			costList[node].elevator = e
+			eCost = DupElevator(e)
+			eCost.Requests[floor][button] = 1
+			costList[node].cost = TimeToIdle(node)
+		}
+	}
+	assignedNode = min(costList.cost)[elevator].id // id of the elevator with least cost
+	return assignedNode
+}
+
+
+func SendUntilEnoughAcks() {
+	// When Order is received, find list of available nodes
+	// Based on the list of available nodes, find the amount of acks that is "enough"
+	// Order needs some sort of ID. This ID needs to be shared between some receiver
+
+	case <-timeout:
+		
+	case order<-newOrder:
+		append(someOrderArray, order)
+		enoughAcks=false
+	case <-ack:
+		if ack >= enoughAcks {
+			enoughAcks = true
+		}
+	if !enoughAcks {
+		sendOrder<-true
+	}
+
+	
+}
+
+	go assigner(in buttonPress, out assignedNode)
+	go distributor(in assignedNode,)
+go func node {
+	
+	go bcast.Receiver(node chan Node, order chan Order, ack chan Ack)
+	go bcast.Transmitter(order Order)
+
+	case node := <- assignedNode:
+		distributor<-node
+	case <-sendOrder:
+		order<-order
+	case a:= <-ack:
+		duplicate := checkForDuplicateAcks(a.NodeId)
+		if !duplicate {
+			sendOrder
+		}
+	case 
+
+}
+
+
+go func node() {
+	go bcast.Receiver(orderIn chan Order)
+	go bcast.Transmitter(orderOut chan Order)
+
+	go bcast.Transmitter(ackOut chan Ack)
+	go bcast.Receiver(ackIn chan Ack)
+
+	
+
+	for {
+		case newAck := <- ackIn:
+			unconfirmedOrder = getUnconfirmedOrderWithID(ack.Id)
+			for prevAck := range(unconfirmedOrder.acks) {
+				if newAck.NodeID != prevAck.NodeID {
+					
+				}
+			}
+			
+		case ackOut<-:
+		case <-orderIn:
+		case orderOut<-:
+
+	}
+}
+
+go func SendUntilEnoughAcks() {
+	done := make(chan bool)
+	go node(done chan bool)
+	for {	
+		case <-timeout:
+		case <- done
+	}
+	
+	
+}

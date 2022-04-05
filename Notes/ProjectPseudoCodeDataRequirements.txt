@@ -1,0 +1,45 @@
+type elevatorData struct {
+	id        String
+	elevator  Elevator
+	defined   bool
+	connected bool
+	What else???
+}
+
+--------------------------------------------------------------------------------------
+
+assignOrderToElevator(order Requests)
+NEEDS/INPUTS:
+	- knownNodes array (containing elevator data)
+	- Order struct
+	- cost struct
+//// -NumConnectedElevators / connectedNodes Array - probably latter
+
+
+RETURNS/OUTPUTS:
+	- id of assigned node
+
+FUNCTION/ROUTINE?
+Thinking func
+
+CALLED FROM:
+	- Wherever new button presses are registered
+	- onNodeLost function
+
+-------------------------------------------------------------------------------------
+
+func
+NEEDS/INPUTS:
+-
+-
+
+RETURNS/OUTPUTS:
+-
+-
+
+FUNCTION/ROUTINE?
+func/routine
+
+CALLED FROM:
+-
+

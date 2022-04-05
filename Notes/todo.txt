@@ -1,0 +1,80 @@
+Move some stuff from the elevator/config file to some other global config file 
+
+Issue now is connecting a node to the elevator data properly! 
+A new node for "this" node is created in the peers.go file - should be moved
+OnNewNode should be fixed
+
+
+Need to:
+Connect assigner
+Make distributor - send until ack and all that!
+Make a backup that can take over control when main node stops functioning!
+Make some way of deleting orders, somehow remove orders from the entire system!
+
+
+Updated 31.03
+
+Successfully output of ID and Floorstate from receiver.
+Control of 2 different nodes
+
+TODO:
+- Integrate cost-functioning                                                              | X
+- Assigner                                                                                | X
+    - Assigner currently uses shared data w/o mutex. Should be changed!                   |
+- Expand broadcast handler (ack/discard) || distributor                                   |
+- Move and rename peers.go to a more appropriate place and name                           |
+- Watchdog                                                                                |
+-                                                                                         |
+- Handle reassignment on failure states as shown below                                    |
+- Change thisNode.Elevator = fsm.Elevator1 s.t. peers.Transmit takes elevator in as chan  | 
+- Change fsm to only turn on lights when enough nodes have acked                          |
+- Code quality                                                                            |
+
+Failures
+
+- Motorstop
+- Door open for too long
+- Node disconnection
+- Program exist
+- Loss
+
+
+Updated 02.04
+
+TODO:
+- Integrate cost-functioning --DONE                                                       | X
+- Assigner                                                                                | X
+    - Assigner currently uses shared data w/o mutex. Should be changed!       
+    - Should differentiate between cabCall and hallCall                                   | X Potentially better implementation?
+- Expand broadcast handler (ack/discard) || distributor                                   |
+    - Expand node data to include fault 
+    - if 
+- Move and rename peers.go to a more appropriate place and name                           |
+- Watchdog                                                                                |
+-                                                                                         |
+- Handle reassignment on failure states as shown below                                    |
+- Change thisNode.Elevator = fsm.Elevator1 s.t. peers.Transmit takes elevator in as chan  | 
+- Change fsm to only turn on lights when enough nodes have acked                          |
+- Fsm_onReqButton has to be renamed                                                       |
+- Acks should be based on available nodes
+- Code quality  
+
+Failures
+
+- Motorstop
+- Door open for too long
+- Node disconnection
+- Program exist
+- Loss
+
+
+ISSUES/BUGS:
+- Setting obstruction to active while elevator is on a floor with door closed doesn't turn on obstruction light (which is good), 
+  but the light turns on after a new request is received (which is bad)
+
+
+
+
+
+Cab calls do not light up buttons
+Peers does not remove dead connections, always sets nodes to available
