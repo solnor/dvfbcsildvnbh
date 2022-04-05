@@ -108,7 +108,7 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 	// var prevOrder [4][2]int
 	var availableNodes []string
 	// var lastState [4][2]nodeConfig.OrderType
-	enoughAcks := 2
+	enoughAcks := 1
 	// acksIncomingOrder := 0
 	// acksEstablishedOrder := 0
 	// TIMEOUT := 1000
@@ -182,14 +182,16 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 				case currentOrder.SenderId:
 					currentOrder.Acks = getUpdatedAckList2(id, currentOrder.Acks, order.Acks)
 					// fmt.Printf("Current order acks: %s\n", currentOrder.Acks)
+					// fmt.Println(enoughAcks)
 					if len(currentOrder.Acks) >= enoughAcks {
-						fmt.Println("Enough acks")
+						fmt.Printf("Got enough acks: %s. Confirming order.\n", currentOrder.Acks)
 						currentOrder.State = nodeConfig.Order_Confirmed
 						//Send to orderClearer
 					} else {
 						currentOrder.State = nodeConfig.Order_Ack
 						TimeOfButtonPress := currentOrder.Timestamp
 						if time.Since(TimeOfButtonPress) > time.Duration(ORDER_SEND_TIMEOUT_MS)*time.Millisecond {
+							fmt.Println(time.Since(TimeOfButtonPress))
 							fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 							fmt.Println("Order timeout reached - clearing order")
 							// currentOrder = ClearOrder()
@@ -253,8 +255,11 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 			// 	order.State = nodeConfig.Order_Cleared
 			// }
 		case nodeConfig.Order_Confirmed:
-			node, _, err := peers.GetNodeWithId(order.AssignedId)
-			if err == 0 {
+			// node, _, err := peers.GetNodeWithId(order.AssignedId)
+			nodeConfig.KnownNodesMutex.RLock()
+			node := nodeConfig.KnownNodesTable[order.AssignedId]
+			nodeConfig.KnownNodesMutex.RUnlock()
+			if node != nil {
 				// fmt.Printf("req: %d\n", node.Elevator.Requests[floor][btn])
 				// fmt.Printf("Currently assigned id: %s\n",order.AssignedId)
 				// fmt.Printf("Currently floor: %d\n\n",node.Elevator.Floor)

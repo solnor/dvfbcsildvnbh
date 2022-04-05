@@ -50,7 +50,16 @@ func SetAllLights(es config.Elevator) {
 	}
 }
 
+func SetCabLights(es config.Elevator) {
+	for floor := 0; floor < config.N_FLOORS; floor++ {
+		if es.Requests[floor][2] == 1 {
+			SetButtonLamp(2, floor, true)
+		} else {
+			SetButtonLamp(2, floor, false)
+		}
 
+	}
+}
 
 func Fsm_onRequestButtonPress(btn_floor int, btn_type config.ButtonType) {
 	fmt.Printf("\n\n%s(%d, %v)\n", GetFunctionname(Fsm_onRequestButtonPress), btn_floor, btn_type)
@@ -61,7 +70,6 @@ func Fsm_onRequestButtonPress(btn_floor int, btn_type config.ButtonType) {
 		if Requests_shouldClearImmediately(Elevator1, btn_floor, btn_type) {
 			//timer_start.reset(elevator.Config.DoorOpenDuration_s)
 			timer.Reset(time.Duration(config.DOOR_OPEN_TIME_S) * time.Second)
-
 		} else {
 			Elevator1.Requests[btn_floor][btn_type] = 1
 		}
@@ -93,6 +101,7 @@ func Fsm_onRequestButtonPress(btn_floor int, btn_type config.ButtonType) {
 	}
 
 	// setAllLights(Elevator1) //// Commented out due to button light contract
+	SetCabLights(Elevator1)
 	//fmt.Printf("\nNew State: \n")
 	//Elevator_print(Elevator1)
 }

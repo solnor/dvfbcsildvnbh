@@ -2,6 +2,8 @@ package config
 
 import (
 	elevConfig "elevator/config"
+	"elevator/fsm"
+	"sync"
 	"time"
 )
 
@@ -11,7 +13,22 @@ type Node struct {
 	Elevator  elevConfig.Elevator
 }
 
-var KnownNodes = make([]*Node, 0)
+// var KnownNodes = make([]*Node, 0)
+var KnownNodesMutex = sync.RWMutex{}
+var KnownNodesTable map[string]*Node
+
+var ThisNode Node
+
+func Node_Init(id string) {
+	KnownNodesTable = make(map[string]*Node)
+	ThisNode = NewNode(id)
+	ThisNode.Elevator = fsm.Elevator1
+	// nodeConfig.KnownNodes = make(map[string])
+	// nodeConfig.KnownNodes = append(nodeConfig.KnownNodes, &thisNode) //MOVE THIS
+	KnownNodesMutex.Lock()
+	KnownNodesTable[id] = &ThisNode
+	KnownNodesMutex.Unlock()
+}
 
 func NewNode(id string) Node {
 	var n Node

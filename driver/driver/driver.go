@@ -56,6 +56,12 @@ func Elevator_Run() {
 		fsm.Elevator1.Dirn = config.MD_Down
 		fsm.Elevator1.Behaviour = config.EB_Moving
 	}
+	nodeConfig.Node_Init(id)
+	// ThisNode := nodeConfig.NewNode(id)
+	// ThisNode.Elevator = fsm.Elevator1
+	// // nodeConfig.KnownNodes = make(map[string])
+	// // nodeConfig.KnownNodes = append(nodeConfig.KnownNodes, &thisNode) //MOVE THIS
+	// nodeConfig.KnownNodesTable[id] = &ThisNode
 
 	peerTxEnable := make(chan bool)
 	peerUpdateCh := make(chan peers.PeerUpdate)
@@ -66,6 +72,7 @@ func Elevator_Run() {
 	assignedOrder := make(chan nodeConfig.Order)
 	orderRx := make(chan nodeConfig.Order)
 	orderUpdate := make(chan nodeConfig.OrderEvent)
+
 	// go assigner.AssignOrder(nodeUpdateCh, buttonE, orderAssignment, id)
 	go assigner.AssignOrder2(id, buttonE, reassginOrder, assignedOrder)
 	go distributor.Distribute(id, assignedOrder, reassginOrder, orderRx, peerUpdateCh, orderUpdate)
@@ -116,10 +123,10 @@ func Elevator_Run() {
 
 		case a := <-drv_buttons:
 			if a.Button == 2 {
+				elevio.SetButtonLamp(a.Button, a.Floor, true)
 				fsm.Fsm_onRequestButtonPress(a.Floor, a.Button)
 			} else {
 				buttonE <- a
-
 			}
 			// fsm.Fsm_onRequestButtonPress(a.Floor, a.Button)
 			// fmt.Printf("Cost: %d", cost.TimeToIdle(fsm.Elevator1))

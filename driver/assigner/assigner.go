@@ -89,8 +89,8 @@ func AssignOrder2(id string, requestCh, reassignCh chan elevConfig.ButtonEvent, 
 			// fmt.Printf("%q", r)
 			var minimumCost int64 = 100000
 			var elevatorCost int64
-
-			for _, node := range nodeConfig.KnownNodes {
+			nodeConfig.KnownNodesMutex.RLock()
+			for _, node := range nodeConfig.KnownNodesTable {
 				//fmt.Println(node)
 				eCopy := elevConfig.DupElevator(node.Elevator)
 				eCopy.Requests[request.Floor][request.Button] = 1
@@ -105,6 +105,7 @@ func AssignOrder2(id string, requestCh, reassignCh chan elevConfig.ButtonEvent, 
 				}
 				//failcheck?
 			}
+			nodeConfig.KnownNodesMutex.RUnlock()
 			if orderAssigned {
 				// fmt.Println("minimumCost: ", minimumCost)
 				order.SenderId = id

@@ -76,5 +76,7 @@ ISSUES/BUGS:
 
 
 
-Cab calls do not light up buttons
+// Cab calls do not light up buttons
 Peers does not remove dead connections, always sets nodes to available
+
+Dra ut nettverkskabel!
