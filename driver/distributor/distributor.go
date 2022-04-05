@@ -75,28 +75,16 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 
 	const ORDER_SEND_TIMEOUT_MS = 1500
 
-	//OrderList = make([][2]nodeConfig.Node, elevConfig.NumFloors)
 	var localOrders [4][2]nodeConfig.Order
 
-	// var prevOrder [4][2]int
 	var availableNodes []string
-	// var lastState [4][2]nodeConfig.OrderType
 	enoughAcks := 1
-	// acksIncomingOrder := 0
-	// acksEstablishedOrder := 0
-	// TIMEOUT := 1000
-	// orderReceived := false
 
 	for floor, floors := range localOrders {
 		for button, _ := range floors {
 			localOrders[floor][button].State = nodeConfig.Order_Cleared
-			// prevOrder[floor][button] = 0
-			// fmt.Println(localOrders[floor][button])
 		}
 	}
-
-	// flr := 0
-	// btn := 0
 
 	for {
 		select {
@@ -104,15 +92,11 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 			// fmt.Printf("??? %q\n", order)
 			orderTx <- order
 		case p := <-peerUpdateCh:
-			fmt.Println("Got peer update")
-			// for _,_ := range p.New {
-			// fmt.Println(p.New)
-			// fmt.Println(p.Peers)
+			fmt.Println("Got peer update:")
 			fmt.Printf(" Peers: %q\n", p.Peers)
 			fmt.Printf(" New: %q\n", p.New)
 			availableNodes = p.Peers
 			enoughAcks = len(availableNodes)
-			fmt.Println(enoughAcks)
 
 		case order := <-orderRx:
 			currentOrder := localOrders[order.Request.Floor][order.Request.Button]
@@ -152,18 +136,14 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 				default:
 					currentOrder.State = nodeConfig.Order_Confirmed
 					currentOrder.Acks = append(currentOrder.Acks, id)
-					// trackingOrder := updateOrderToTrack(currentOrder)
 					trackConfirmedNode <- currentOrder
 					fmt.Println("Sent order to tracker from other id")
 				}
-				// fmt.Printf("Ordertype: %d\n", currentOrder.State)
 				orderTx <- currentOrder
 			case nodeConfig.Order_Ack:
 				switch id {
 				case currentOrder.SenderId:
 					currentOrder.Acks = getUpdatedAckList(id, currentOrder.Acks, order.Acks)
-					// fmt.Printf("Current order acks: %s\n", currentOrder.Acks)
-					// fmt.Println(enoughAcks)
 					if len(currentOrder.Acks) >= enoughAcks {
 						fmt.Printf("Got enough acks: %s. Confirming order.\n", currentOrder.Acks)
 						currentOrder.State = nodeConfig.Order_Confirmed
@@ -175,8 +155,8 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 							fmt.Println(time.Since(TimeOfButtonPress))
 							fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 							fmt.Println("Order timeout reached - clearing order")
-							order.State = nodeConfig.Order_Cleared
-							order.Acks = nil
+							currentOrder.State = nodeConfig.Order_Cleared
+							currentOrder.Acks = nil
 						} else {
 							orderTx <- currentOrder
 						}
@@ -294,9 +274,9 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 							orderUpdated = true
 							fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 							fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
+							confirmedOrder <- makeOrderEvent(flr, btn, false)
 						}
 
-						confirmedOrder <- makeOrderEvent(flr, btn, false)
 					}
 				}
 				// fmt.Println(time.Duration(reassignTime*1000) * time.Millisecond)

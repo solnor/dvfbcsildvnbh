@@ -73,7 +73,7 @@ func Elevator_Run() {
 	orderRx := make(chan nodeConfig.Order)
 	orderUpdate := make(chan nodeConfig.OrderEvent)
 
-	orderCleared := make(chan nodeConfig.Order)
+	orderCleared := make(chan nodeConfig.Order, 15)
 	trackOrder := make(chan nodeConfig.Order)
 
 	// go assigner.AssignOrder(nodeUpdateCh, buttonE, orderAssignment, id)
