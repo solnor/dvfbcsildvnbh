@@ -123,7 +123,7 @@ func AssignOrder2(id string, requestCh, reassignCh chan elevConfig.ButtonEvent, 
 
 				assignedOrder <- order
 			}
-
+			// time.Sleep(100 * time.Millisecond)
 		}
 	}
 	// return calculatedElevator

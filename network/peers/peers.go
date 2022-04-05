@@ -19,29 +19,16 @@ const timeout = 500 * time.Millisecond
 
 func Transmitter(port int, id string, transmitEnable <-chan bool) {
 
-	// conn := conn.DialBroadcastUDP(port)
-	// addr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
 	nodeUpdateTx := make(chan nodeConfig.Node)
 	go bcast.Transmitter(port, nodeUpdateTx)
-
-	// thisNode := nodeConfig.NewNode(id)
-	// thisNode.Elevator = fsm.Elevator1
-	// nodeConfig.KnownNodes = make(map[string])
-	// nodeConfig.KnownNodes = append(nodeConfig.KnownNodes, &thisNode) //MOVE THIS
-	// fmt.Printf("thisNode: %d\n", thisNode.Elevator.Floor)
-	// fmt.Println(fsm.Elevator1.Floor)
 	enable := true
 	for {
 		select {
 		case enable = <-transmitEnable:
-		// case <-time.After(interval - 50*time.Millisecond):
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(150 * time.Millisecond):
 		}
 		if enable {
-			// nodeConfig.KnownNodes
 
-			// n, _, err := GetNodeWithId(id)
-			// fmt.Println(nodeConfig.KnownNodes)
 			nodeConfig.KnownNodesMutex.RLock()
 			node := nodeConfig.KnownNodesTable[id]
 			nodeConfig.KnownNodesMutex.RUnlock()
@@ -49,17 +36,7 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 				node.Elevator = fsm.Elevator1
 				nodeUpdateTx <- *node
 			}
-			// if err == 0 {
-			// 	n.Elevator = fsm.Elevator1
-			// 	// nodeConfig.KnownNodes[index].Elevator = fsm.Elevator1
-			// 	// fmt.Printf("souhafdiounha %d\n", n.Elevator.Floor)
-			// 	nodeUpdateTx <- *n
-			// }
-			// conn.WriteTo([]byte(id), addr)
 		}
-		// time.Sleep(30 * time.Millisecond)
-		// fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-		// fmt.Println("PEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEER Transdmit")
 	}
 
 }
@@ -72,73 +49,32 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 	nodeUpdateRx := make(chan nodeConfig.Node)
 	go bcast.Receiver(port, 0, nodeUpdateRx)
 
-	// conn := conn.DialBroadcastUDP(port)
 	for {
-		// fmt.Printf("Known nodes: %q\n", nodeConfig.KnownNodes)
 		updated := false
-
-		// conn.SetReadDeadline(time.Now().Add(interval))
-		// n, _, _ := conn.ReadFrom(buf[0:])
-		// var n nodeConfig.Node
 		id := ""
 		select {
 		case nodeUpdate := <-nodeUpdateRx:
 			id = nodeUpdate.Id
-			// // fmt.Printf("From peers.Receiver: n.Floor: %d\n", n.Elevator.Floor)
-			// nodeIsKnown := false
-			// for _, node := range nodeConfig.KnownNodes {
-			// 	if node.Id == n.Id {
-			// 		nodeIsKnown = true
-			// 	}
-			// }
-			// for _, node := range nodeConfig.KnownNodesTable {
-			// 	if node.Id == nodeUpdate.Id {
-			// 		nodeIsKnown = true
-			// 	}
-			// 	break
-			// }
-			// fmt.Printf("Peer receiver, node.avail: %t\n", nodeUpdate.Available)
-			// fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-			// fmt.Println(nodeUpdate.Elevator.Requests)
 			nodeConfig.KnownNodesMutex.RLock()
 			node := nodeConfig.KnownNodesTable[string(id)]
 			nodeConfig.KnownNodesMutex.RUnlock()
 			if node != nil {
 				if node.Id == thisId {
 					nodeConfig.KnownNodesMutex.Lock()
-					// nodeConfig.KnownNodesTable[id].Available = false
 					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
-					// nodeConfig.KnownNodesTable[id] = &nodeUpdate
 					nodeConfig.KnownNodesMutex.Unlock()
-					// *node = nodeUpdate
 				} else {
 					nodeConfig.KnownNodesMutex.Lock()
 					nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
 					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
-					// nodeConfig.KnownNodesTable[id] = &nodeUpdate
 					nodeConfig.KnownNodesMutex.Unlock()
 				}
 			} else {
 				OnNewNode2(nodeUpdate)
 			}
-			// if nodeIsKnown {
-			// 	// fmt.Printf("From main.Receiver: id: %s, n.Floor: %d\n", n.Id, n.Elevator.Floor) //n) //n.Elevator.Floor)
-			// 	nodeToUpdate, _, _ := GetNodeWithId(n.Id)
-			// 	if nodeToUpdate.Id != thisId {
-			// 		*nodeToUpdate = n
-			// 	}
-			// 	// fmt.Printf()
-
-			// } else {
-			// 	OnNewNode2(n)
-			// }
-			// nodeUpdateCh <- n
 		case <-time.After(interval - 50*time.Millisecond):
 		}
-		// id := string(buf[:n])
 
-		// id := "10"
-		// Adding new connection
 		p.New = ""
 		if id != "" {
 			if _, idExists := lastSeen[id]; !idExists {
@@ -158,22 +94,28 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 				delete(lastSeen, k)
 			}
 		}
-
+		// Each node updates the availability of other nodes based on which nodes can be reached.
 		for _, lostNode := range p.Lost {
-			// node, _, _ := GetNodeWithId(lostNode)
-			nodeConfig.KnownNodesMutex.Lock()
-			nodeConfig.KnownNodesTable[lostNode].Available = false
-			nodeConfig.KnownNodesMutex.Unlock()
-		}
-		for _, peer := range p.Peers {
-			// node, _, _ := GetNodeWithId(peer)
 			nodeConfig.KnownNodesMutex.RLock()
-			node := nodeConfig.KnownNodesTable[peer]
+			node := nodeConfig.KnownNodesTable[lostNode]
 			nodeConfig.KnownNodesMutex.RUnlock()
 			if node != nil {
 				if node.Id != thisId {
 					nodeConfig.KnownNodesMutex.Lock()
-					nodeConfig.KnownNodesTable[peer].Available = true
+					nodeConfig.KnownNodesTable[lostNode].Available = false
+					nodeConfig.KnownNodesMutex.Unlock()
+				}
+			}
+		}
+		for _, connNodes := range p.Peers {
+			nodeConfig.KnownNodesMutex.RLock()
+			node := nodeConfig.KnownNodesTable[connNodes]
+			nodeConfig.KnownNodesMutex.RUnlock()
+			if node != nil {
+
+				if node.Id != thisId {
+					nodeConfig.KnownNodesMutex.Lock()
+					nodeConfig.KnownNodesTable[connNodes].Available = true
 					nodeConfig.KnownNodesMutex.Unlock()
 				}
 			}

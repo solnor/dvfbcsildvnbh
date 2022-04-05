@@ -3,7 +3,6 @@ package watchdog
 import (
 	nodeConfig "driver/config"
 	elevConfig "elevator/config"
-	"fmt"
 	"time"
 )
 
@@ -17,19 +16,9 @@ func Watchdog(elev *elevConfig.Elevator) {
 	for {
 		select {
 		case <-timer.C:
-			fmt.Printf("Litta bjeffa: %t (fra mini-honnja)\n", nodeConfig.ThisNode.Available)
-
-			// node := nodeConfig.KnownNodes[0]
-			// node := nodeConfig.KnownNodesTable[T]
 			nodeConfig.ThisNode.Available = false
-			// node.Available = false
-			fmt.Printf("Litta bjeffa: %t (fra mini-honnja)\n", nodeConfig.ThisNode.Available)
-
 		case <-time.After(interval * time.Millisecond):
-			// fmt.Printf("sdsdsdasd\n")
-			// fmt.Println(elev.Behaviour)
 		}
-		// time.Sleep(250*time.Millisecond)
 		if elev.Floor != lastFloor {
 			timer.Reset(10 * time.Second)
 			nodeConfig.ThisNode.Available = true
@@ -42,6 +31,6 @@ func Watchdog(elev *elevConfig.Elevator) {
 			timer.Reset(10 * time.Second)
 			nodeConfig.ThisNode.Available = true
 		}
-		time.Sleep(200)
+		time.Sleep(200 * time.Millisecond)
 	}
 }
