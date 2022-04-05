@@ -90,7 +90,7 @@ func addSelfToAckList(id string, current, new []string) []string {
 }
 
 //Args: id, orderCh = Assinger/Distributor interface, orderOut = Driver/Distributor, peerUpdateCh
-func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevConfig.ButtonEvent, orderOut chan nodeConfig.Order, peerUpdateCh chan peers.PeerUpdate, orderUpdate chan nodeConfig.OrderEvent) {
+func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevConfig.ButtonEvent, orderOut chan nodeConfig.Order, peerUpdateCh chan peers.PeerUpdate, orderUpdate chan nodeConfig.OrderEvent, trackConfirmedNode, orderCleared chan nodeConfig.Order) {
 
 	orderTx := make(chan nodeConfig.Order)
 	orderRx := make(chan nodeConfig.Order)
@@ -105,6 +105,7 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 
 	//OrderList = make([][2]nodeConfig.Node, elevConfig.NumFloors)
 	var localOrders [4][2]nodeConfig.Order
+
 	// var prevOrder [4][2]int
 	var availableNodes []string
 	// var lastState [4][2]nodeConfig.OrderType
@@ -122,8 +123,8 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 		}
 	}
 
-	flr := 0
-	btn := 0
+	// flr := 0
+	// btn := 0
 
 	for {
 		select {
@@ -159,6 +160,7 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 				currentOrder.Request.Floor = order.Request.Floor
 				currentOrder.Request.Button = order.Request.Button
 				currentOrder.Acks = nil
+				currentOrder.Cost = order.Cost
 				// currentOrder.Acks = append(currentOrder.Acks, id)
 				switch id {
 				case currentOrder.AssignedId:
@@ -168,12 +170,19 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 					} else {
 						currentOrder.State = nodeConfig.Order_Confirmed
 						currentOrder.Acks = append(currentOrder.Acks, id)
+						// trackingOrder := updateOrderToTrack(currentOrder)
+						trackConfirmedNode <- currentOrder
+						fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+						fmt.Println("Sent order to tracker from assigned id")
 					}
 				case currentOrder.SenderId:
 					currentOrder.State = nodeConfig.Order_Ack
 				default:
 					currentOrder.State = nodeConfig.Order_Confirmed
 					currentOrder.Acks = append(currentOrder.Acks, id)
+					// trackingOrder := updateOrderToTrack(currentOrder)
+					trackConfirmedNode <- currentOrder
+					fmt.Println("Sent order to tracker from other id")
 				}
 				// fmt.Printf("Ordertype: %d\n", currentOrder.State)
 				orderTx <- currentOrder
@@ -186,6 +195,7 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 					if len(currentOrder.Acks) >= enoughAcks {
 						fmt.Printf("Got enough acks: %s. Confirming order.\n", currentOrder.Acks)
 						currentOrder.State = nodeConfig.Order_Confirmed
+						trackConfirmedNode <- currentOrder
 						//Send to orderClearer
 					} else {
 						currentOrder.State = nodeConfig.Order_Ack
@@ -204,6 +214,8 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 			case nodeConfig.Order_Confirmed:
 				switch id {
 				case currentOrder.SenderId:
+					// trackingOrder := updateOrderToTrack(currentOrder)
+
 					// fmt.Println("Sender order in confirmed state")
 				default:
 					// fmt.Printf("Order.state in confirmed current order: %d\n", order.State)
@@ -223,89 +235,94 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 			// fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 			// fmt.Println("SOIJDIOASJDAOISD")
 			time.Sleep(100 * time.Millisecond)
-		case <-time.After(50 * time.Millisecond):
+		case order := <-orderCleared:
+			btn := order.Request.Button
+			flr := order.Request.Floor
+			localOrders[flr][btn].State = order.State
+			// fmt.Printf("State at floor: %d, btn: %d - %q\n", flr, btn, localOrders[flr][btn].State)
+
+			// case <-time.After(50 * time.Millisecond):
 
 		}
 
 		// floor++;
 
-		if btn == len(localOrders[1])-1 {
-			btn = 0
-			flr++
-		} else {
-			btn++
-		}
-		if flr == len(localOrders) {
-			flr = 0
-			btn = 0
-		}
-		// btn++
-		// if floor == len(localOrders)
-		order := localOrders[flr][btn]
-		// fmt.Printf("Floor: %d\n", floor)
-		// fmt.Printf("Button: %d\n", btn)
+		// // // // // // // // // // // // // // if btn == len(localOrders[1])-1 {
+		// // // // // // // // // // // // // // 	btn = 0
+		// // // // // // // // // // // // // // 	flr++
+		// // // // // // // // // // // // // // } else {
+		// // // // // // // // // // // // // // 	btn++
+		// // // // // // // // // // // // // // }
+		// // // // // // // // // // // // // // if flr == len(localOrders) {
+		// // // // // // // // // // // // // // 	flr = 0
+		// // // // // // // // // // // // // // 	btn = 0
+		// // // // // // // // // // // // // // }
+		// // // // // // // // // // // // // // // btn++
+		// // // // // // // // // // // // // // // if floor == len(localOrders)
+		// // // // // // // // // // // // // // order := localOrders[flr][btn]
+		// // // // // // // // // // // // // // // fmt.Printf("Floor: %d\n", floor)
+		// // // // // // // // // // // // // // // fmt.Printf("Button: %d\n", btn)
 
-		switch order.State {
-		case nodeConfig.Order_Ack:
-			// TimeOfButtonPress := order.Timestamp
-			// if time.Since(TimeOfButtonPress) > time.Duration(ORDER_SEND_TIMEOUT_MS)*time.Millisecond {
-			// 	fmt.Printf("[%s]", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-			// 	fmt.Println("Order timeout reached - clearing order")
-			// 	// currentOrder = ClearOrder()
-			// 	order.State = nodeConfig.Order_Cleared
-			// }
-		case nodeConfig.Order_Confirmed:
-			// node, _, err := peers.GetNodeWithId(order.AssignedId)
-			nodeConfig.KnownNodesMutex.RLock()
-			node := nodeConfig.KnownNodesTable[order.AssignedId]
-			nodeConfig.KnownNodesMutex.RUnlock()
-			if node != nil {
-				// fmt.Printf("req: %d\n", node.Elevator.Requests[floor][btn])
-				// fmt.Printf("Currently assigned id: %s\n",order.AssignedId)
-				// fmt.Printf("Currently floor: %d\n\n",node.Elevator.Floor)
+		// // // // // // // // // // // // // // switch order.State {
+		// // // // // // // // // // // // // // case nodeConfig.Order_Ack:
+		// // // // // // // // // // // // // // 	// TimeOfButtonPress := order.Timestamp
+		// // // // // // // // // // // // // // 	// if time.Since(TimeOfButtonPress) > time.Duration(ORDER_SEND_TIMEOUT_MS)*time.Millisecond {
+		// // // // // // // // // // // // // // 	// 	fmt.Printf("[%s]", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+		// // // // // // // // // // // // // // 	// 	fmt.Println("Order timeout reached - clearing order")
+		// // // // // // // // // // // // // // 	// 	// currentOrder = ClearOrder()
+		// // // // // // // // // // // // // // 	// 	order.State = nodeConfig.Order_Cleared
+		// // // // // // // // // // // // // // 	// }
+		// // // // // // // // // // // // // // case nodeConfig.Order_Confirmed:
+		// // // // // // // // // // // // // // 	// node, _, err := peers.GetNodeWithId(order.AssignedId)
+		// // // // // // // // // // // // // // 	nodeConfig.KnownNodesMutex.RLock()
+		// // // // // // // // // // // // // // 	node := nodeConfig.KnownNodesTable[order.AssignedId]
+		// // // // // // // // // // // // // // 	nodeConfig.KnownNodesMutex.RUnlock()
+		// // // // // // // // // // // // // // 	if node != nil {
+		// // // // // // // // // // // // // // 		// fmt.Printf("req: %d\n", node.Elevator.Requests[floor][btn])
+		// // // // // // // // // // // // // // 		// fmt.Printf("Currently assigned id: %s\n",order.AssignedId)
+		// // // // // // // // // // // // // // 		// fmt.Printf("Currently floor: %d\n\n",node.Elevator.Floor)
 
-				var orderEvent nodeConfig.OrderEvent
-				orderEvent.Request.Floor = flr
-				orderEvent.Request.Button = elevConfig.ToButtonType(btn)
-				orderEvent.Confirmed = true
-				orderUpdate <- orderEvent
+		// // // // // // // // // // // // // // 		var orderEvent nodeConfig.OrderEvent
+		// // // // // // // // // // // // // // 		orderEvent.Request.Floor = flr
+		// // // // // // // // // // // // // // 		orderEvent.Request.Button = elevConfig.ToButtonType(btn)
+		// // // // // // // // // // // // // // 		orderEvent.Confirmed = true
+		// // // // // // // // // // // // // // 		orderUpdate <- orderEvent
 
-				TimeOfButtonPress := order.Timestamp
-				var orderReassignTimeout int64 = 0
-				if order.Cost > 0 {
-					orderReassignTimeout = order.Cost
-				} else {
-					orderReassignTimeout = 7
-				}
-				if time.Since(TimeOfButtonPress) > time.Duration(2000)*time.Millisecond && time.Since(TimeOfButtonPress) < time.Duration(orderReassignTimeout*3500)*time.Millisecond {
-					// if node.Available && node.Elevator.Requests[flr][btn] == 0 {
-					// 	order.State = nodeConfig.Order_Cleared
-					// 	fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-					// 	fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
-					// }
-					if node.Available && node.Elevator.Requests[flr][btn] == 0 {
-						order.State = nodeConfig.Order_Cleared
-						fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-						fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
-						var orderEvent nodeConfig.OrderEvent
-						orderEvent.Request.Floor = flr
-						orderEvent.Request.Button = elevConfig.ToButtonType(btn)
-						orderEvent.Confirmed = false
-						orderUpdate <- orderEvent
-					}
-				}
-				if time.Since(TimeOfButtonPress) > time.Duration(orderReassignTimeout*1000)*time.Millisecond {
-					fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-					fmt.Printf("Reassigned order at floor %d, btn: %d \n", flr, btn)
-					reassignCh <- order.Request
-					order.State = nodeConfig.Order_Cleared
-
-				}
-			}
-		default:
-		}
-		localOrders[flr][btn] = order
-
+		// // // // // // // // // // // // // // 		TimeOfButtonPress := order.Timestamp
+		// // // // // // // // // // // // // // 		var orderReassignTimeout int64 = 0
+		// // // // // // // // // // // // // // 		if order.Cost > 0 {
+		// // // // // // // // // // // // // // 			orderReassignTimeout = order.Cost
+		// // // // // // // // // // // // // // 		} else {
+		// // // // // // // // // // // // // // 			orderReassignTimeout = 7
+		// // // // // // // // // // // // // // 		}
+		// // // // // // // // // // // // // // 		if time.Since(TimeOfButtonPress) > time.Duration(2000)*time.Millisecond && time.Since(TimeOfButtonPress) < time.Duration(orderReassignTimeout*3500)*time.Millisecond {
+		// // // // // // // // // // // // // // 			// if node.Available && node.Elevator.Requests[flr][btn] == 0 {
+		// // // // // // // // // // // // // // 			// 	order.State = nodeConfig.Order_Cleared
+		// // // // // // // // // // // // // // 			// 	fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+		// // // // // // // // // // // // // // 			// 	fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
+		// // // // // // // // // // // // // // 			// }
+		// // // // // // // // // // // // // // 			if node.Available && node.Elevator.Requests[flr][btn] == 0 {
+		// // // // // // // // // // // // // // 				order.State = nodeConfig.Order_Cleared
+		// // // // // // // // // // // // // // 				fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+		// // // // // // // // // // // // // // 				fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
+		// // // // // // // // // // // // // // 				var orderEvent nodeConfig.OrderEvent
+		// // // // // // // // // // // // // // 				orderEvent.Request.Floor = flr
+		// // // // // // // // // // // // // // 				orderEvent.Request.Button = elevConfig.ToButtonType(btn)
+		// // // // // // // // // // // // // // 				orderEvent.Confirmed = false
+		// // // // // // // // // // // // // // 				orderUpdate <- orderEvent
+		// // // // // // // // // // // // // // 			}
+		// // // // // // // // // // // // // // 		}
+		// // // // // // // // // // // // // // 		if time.Since(TimeOfButtonPress) > time.Duration(orderReassignTimeout*1000)*time.Millisecond {
+		// // // // // // // // // // // // // // 			fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+		// // // // // // // // // // // // // // 			fmt.Printf("Reassigned order at floor %d, btn: %d \n", flr, btn)
+		// // // // // // // // // // // // // // 			reassignCh <- order.Request
+		// // // // // // // // // // // // // // 			order.State = nodeConfig.Order_Cleared
+		// // // // // // // // // // // // // // 		}
+		// // // // // // // // // // // // // // 	}
+		// // // // // // // // // // // // // // default:
+		// // // // // // // // // // // // // // }
+		// // // // // // // // // // // // // // localOrders[flr][btn] = order
+		// // // // // // // // // // // // // // time.Sleep(50 * time.Millisecond)
 		// if order.State == nodeConfig.Order_Confirmed {
 		// 	// fmt.Printf("Got confirmed order at floor %d, button %d\n", floor, button)
 		// 	node, _, err := peers.GetNodeWithId(order.AssignedId)
@@ -464,6 +481,16 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 // 	OrderList = make([][2]nodeConfig.Node, elevConfig.NumFloors)
 // }
 
+func updateOrderToTrack(order nodeConfig.Order) nodeConfig.OrderUpdate {
+	var trackOrder nodeConfig.OrderUpdate
+	trackOrder.AssignedId = order.AssignedId
+	trackOrder.Request.Button = order.Request.Button
+	trackOrder.Request.Floor = order.Request.Floor
+	trackOrder.Timestamp = order.Timestamp
+	trackOrder.State = order.State
+	return trackOrder
+}
+
 func inTimeSpan(start, end, check time.Time) bool {
 	if start.Before(end) {
 		return !check.Before(start) && !check.After(end)
@@ -472,4 +499,133 @@ func inTimeSpan(start, end, check time.Time) bool {
 		return check.Equal(start)
 	}
 	return !start.After(check) || !end.Before(check)
+}
+
+func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedOrder chan nodeConfig.OrderEvent, reassignCh chan elevConfig.ButtonEvent) {
+	var confirmedOrders = make([]nodeConfig.Order, 0)
+	iterator := 0
+	for {
+		select {
+		case order := <-newOrderToTrack:
+			confirmedOrders = append(confirmedOrders, order)
+		case <-time.After(50 * time.Millisecond):
+		}
+		if len(confirmedOrders) > 0 {
+			if iterator < len(confirmedOrders)-1 {
+				iterator++
+			} else {
+				iterator = 0
+				// fmt.Printf("Iterator: %d\n", iterator)
+			}
+			// btn++
+			// if floor == len(localOrders)
+			order := confirmedOrders[iterator]
+			// fmt.Printf("Floor: %d\n", floor)
+			// fmt.Printf("Button: %d\n", btn)
+			orderUpdated := false
+			orderReassigned := false
+
+			switch order.State {
+			case nodeConfig.Order_Ack:
+				// TimeOfButtonPress := order.Timestamp
+				// if time.Since(TimeOfButtonPress) > time.Duration(ORDER_SEND_TIMEOUT_MS)*time.Millisecond {
+				// 	fmt.Printf("[%s]", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+				// 	fmt.Println("Order timeout reached - clearing order")
+				// 	// currentOrder = ClearOrder()
+				// 	order.State = nodeConfig.Order_Cleared
+				// }
+			case nodeConfig.Order_Confirmed:
+				// node, _, err := peers.GetNodeWithId(order.AssignedId)
+				flr := order.Request.Floor
+				btn := order.Request.Button
+				TimeOfButtonPress := order.Timestamp
+				var reassignTime int64 = getReassignmentTimeout(order)
+
+				nodeConfig.KnownNodesMutex.RLock()
+				node := nodeConfig.KnownNodesTable[order.AssignedId]
+				nodeConfig.KnownNodesMutex.RUnlock()
+				if node != nil {
+					// fmt.Println(node.Elevator.Requests)
+					// fmt.Printf("Pointeeeeer %p\n", *node)
+					// fmt.Printf("Node %s has req: %d\n", node.Id, node.Elevator.Requests[flr][btn])
+					// fmt.Printf("req: %d\n", node.Elevator.Requests[floor][btn])
+					// fmt.Printf("Currently assigned id: %s\n",order.AssignedId)
+					// fmt.Printf("Currently floor: %d\n\n",node.Elevator.Floor)
+
+					confirmedOrder <- makeOrderEvent(flr, btn, true) // Should only be set once
+					// && time.Since(TimeOfButtonPress) < time.Duration(reassignTime*1000)*time.Millisecond
+
+					if time.Since(TimeOfButtonPress) > time.Duration(1000)*time.Millisecond {
+						// if node.Available && node.Elevator.Requests[flr][btn] == 0 {
+						// 	order.State = nodeConfig.Order_Cleared
+						// 	fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+						// 	fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
+						// }
+						// var n nodeConfig.Node
+						// fmt.Println(n.Available)
+						// fmt.Println("Imellom")
+						if node.Available && node.Elevator.Requests[flr][btn] == 0 {
+							order.State = nodeConfig.Order_Cleared
+							orderUpdated = true
+							fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+							fmt.Printf("Cleared order at floor %d, btn: %d \n", flr, btn)
+						}
+
+						confirmedOrder <- makeOrderEvent(flr, btn, false)
+					}
+				}
+				// fmt.Println(time.Duration(reassignTime*1000) * time.Millisecond)
+				if time.Since(TimeOfButtonPress) > time.Duration(reassignTime*1000)*time.Millisecond {
+					fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+					fmt.Printf("Reassigned order at floor %d, btn: %d \n", flr, btn)
+					orderReassigned = true
+					order.State = nodeConfig.Order_Cleared
+					orderUpdated = true
+				}
+			}
+
+			if orderUpdated {
+				order.State = nodeConfig.Order_Cleared
+				confirmedOrders[iterator] = order
+				clearedOrder := confirmedOrders[iterator]
+				confirmedOrders = remove(confirmedOrders, iterator)
+				orderCleared <- clearedOrder
+			} // localOrders[flr][btn] = order
+			if orderReassigned {
+				order.State = nodeConfig.Order_Cleared
+				confirmedOrders[iterator] = order
+				// clearedOrder := confirmedOrders[iterator]
+				confirmedOrders = remove(confirmedOrders, iterator)
+				reassignCh <- order.Request
+			}
+			time.Sleep(150 * time.Millisecond)
+		}
+	}
+
+}
+
+func getReassignmentTimeout(order nodeConfig.Order) int64 {
+	var orderReassignTimeout int64 = 0
+	if order.Cost > 0 {
+		orderReassignTimeout = order.Cost
+	} else {
+		orderReassignTimeout = 7
+	}
+	return orderReassignTimeout
+}
+
+func makeOrderEvent(flr int, btn elevConfig.ButtonType, confirmed bool) nodeConfig.OrderEvent {
+	var orderEvent nodeConfig.OrderEvent
+	orderEvent.Request.Floor = flr
+	orderEvent.Request.Button = btn
+	orderEvent.Confirmed = confirmed
+	return orderEvent
+}
+
+func remove(s []nodeConfig.Order, i int) []nodeConfig.Order {
+	s[i] = s[len(s)-1] // Copy last element to index i.
+	// s[len(s)-1] = ""    // Erase last element (write zero value).
+	return s[:len(s)-1] // Truncate slice.
+	// s[i] = s[len(s)-1]
+	// return s[:len(s)-1]
 }

@@ -50,6 +50,13 @@ type Order struct {
 	State OrderType
 }
 
+type OrderUpdate struct {
+	AssignedId string
+	Request    elevConfig.ButtonEvent
+	Timestamp  time.Time
+	State      OrderType
+}
+
 type OrderEvent struct {
 	Request   elevConfig.ButtonEvent
 	Confirmed bool

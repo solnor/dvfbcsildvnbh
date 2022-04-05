@@ -14,8 +14,8 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
-const interval = 150 * time.Millisecond
-const timeout = 1000 * time.Millisecond
+const interval = 250 * time.Millisecond
+const timeout = 500 * time.Millisecond
 
 func Transmitter(port int, id string, transmitEnable <-chan bool) {
 
@@ -70,7 +70,7 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 	lastSeen := make(map[string]time.Time)
 
 	nodeUpdateRx := make(chan nodeConfig.Node)
-	go bcast.Receiver(port, interval, nodeUpdateRx)
+	go bcast.Receiver(port, 0, nodeUpdateRx)
 
 	// conn := conn.DialBroadcastUDP(port)
 	for {
@@ -83,7 +83,7 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 		id := ""
 		select {
 		case nodeUpdate := <-nodeUpdateRx:
-			// id = n.Id
+			id = nodeUpdate.Id
 			// // fmt.Printf("From peers.Receiver: n.Floor: %d\n", n.Elevator.Floor)
 			// nodeIsKnown := false
 			// for _, node := range nodeConfig.KnownNodes {
@@ -97,12 +97,26 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 			// 	}
 			// 	break
 			// }
+			// fmt.Printf("Peer receiver, node.avail: %t\n", nodeUpdate.Available)
+			// fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
+			// fmt.Println(nodeUpdate.Elevator.Requests)
 			nodeConfig.KnownNodesMutex.RLock()
-			node := nodeConfig.KnownNodesTable[id]
+			node := nodeConfig.KnownNodesTable[string(id)]
 			nodeConfig.KnownNodesMutex.RUnlock()
 			if node != nil {
-				if node.Id != thisId {
-					*node = nodeUpdate
+				if node.Id == thisId {
+					nodeConfig.KnownNodesMutex.Lock()
+					// nodeConfig.KnownNodesTable[id].Available = false
+					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
+					// nodeConfig.KnownNodesTable[id] = &nodeUpdate
+					nodeConfig.KnownNodesMutex.Unlock()
+					// *node = nodeUpdate
+				} else {
+					nodeConfig.KnownNodesMutex.Lock()
+					nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
+					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
+					// nodeConfig.KnownNodesTable[id] = &nodeUpdate
+					nodeConfig.KnownNodesMutex.Unlock()
 				}
 			} else {
 				OnNewNode2(nodeUpdate)
@@ -180,7 +194,7 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 		// fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
 		// fmt.Println("SOIJDIOASJDAOISD")
 		// fmt.Printf("BOTTOM OF PEERS Known nodes: %q\n", nodeConfig.KnownNodes)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(150 * time.Millisecond)
 	}
 }
 
@@ -310,7 +324,6 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 // }
 
 func OnNewNode2(newNode nodeConfig.Node) {
-
 	node := nodeConfig.NewNode(newNode.Id)
 	nodeConfig.KnownNodesMutex.Lock()
 	nodeConfig.KnownNodesTable[newNode.Id] = &node

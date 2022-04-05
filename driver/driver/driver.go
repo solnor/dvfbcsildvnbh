@@ -73,9 +73,13 @@ func Elevator_Run() {
 	orderRx := make(chan nodeConfig.Order)
 	orderUpdate := make(chan nodeConfig.OrderEvent)
 
+	orderCleared := make(chan nodeConfig.Order)
+	trackOrder := make(chan nodeConfig.Order)
+
 	// go assigner.AssignOrder(nodeUpdateCh, buttonE, orderAssignment, id)
 	go assigner.AssignOrder2(id, buttonE, reassginOrder, assignedOrder)
-	go distributor.Distribute(id, assignedOrder, reassginOrder, orderRx, peerUpdateCh, orderUpdate)
+	go distributor.Distribute(id, assignedOrder, reassginOrder, orderRx, peerUpdateCh, orderUpdate, trackOrder, orderCleared)
+	go distributor.TrackOrders(trackOrder, orderCleared, orderUpdate, reassginOrder)
 	// orderRx := make(chan nodeConfig.Order)
 	// go distributor.ReceiveOrder(orderRx)
 
