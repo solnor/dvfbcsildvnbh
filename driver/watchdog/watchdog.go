@@ -3,6 +3,7 @@ package watchdog
 import (
 	nodeConfig "driver/config"
 	elevConfig "elevator/config"
+	"fmt"
 	"time"
 )
 
@@ -16,6 +17,7 @@ func Watchdog(elev *elevConfig.Elevator) {
 	for {
 		select {
 		case <-timer.C:
+			fmt.Println("Node unavailable")
 			nodeConfig.ThisNode.Available = false
 		case <-time.After(interval * time.Millisecond):
 		}

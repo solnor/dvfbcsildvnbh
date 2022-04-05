@@ -240,10 +240,7 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 				nodeConfig.KnownNodesMutex.RUnlock()
 				if node != nil {
 
-					fmt.Println(node.Elevator.Requests)
-
 					confirmedOrder <- makeOrderEvent(flr, btn, true) // TODO: Should only be set once
-					// && time.Since(TimeOfButtonPress) < time.Duration(reassignTime*1000)*time.Millisecond
 
 					if time.Since(TimeOfButtonPress) > time.Duration(1000)*time.Millisecond {
 						// if node.Available && node.Elevator.Requests[flr][btn] == 0 {
