@@ -9,69 +9,12 @@ import (
 	"time"
 )
 
-func contains(slice []string, value string) bool {
-	for _, element := range slice {
-		if element == value {
-			return true
-		}
-	}
-	return false
-}
-
-func getUpdatedAckList(id string, current, new []string) []string {
-	temp := make([]string, 0)
-	for _, ack := range new {
-		if !contains(current, ack) {
-			temp = append(temp, ack)
-		}
-	}
-	current = append(current, temp...)
-	if !contains(current, id) {
-		current = append(current, id)
-	}
-	return current
-}
-
-func getUpdatedAckList3(id string, current, new []string) []string {
-	temp := make([]string, 0)
-	for _, ack := range new {
-		if !contains(current, ack) {
-			temp = append(temp, ack)
-		}
-	}
-	current = append(current, temp...)
-	return current
-}
-
-func addSelfToAckList(id string, current, new []string) []string {
-	temp := make([]string, 0)
-	orderAcked := false
-	for _, ack := range current {
-		if ack == id {
-			orderAcked = true
-			break
-		}
-	}
-	if !orderAcked {
-		temp = append(current, id)
-		return temp
-		// orderUpdated = true
-	}
-	return current
-	// currentStage = nodeConfig.Order_Ack
-}
-
-//Args: id, orderCh = Assinger/Distributor interface, orderOut = Driver/Distributor, peerUpdateCh
 func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevConfig.ButtonEvent, orderOut chan nodeConfig.Order, peerUpdateCh chan peers.PeerUpdate, orderUpdate chan nodeConfig.OrderEvent, trackConfirmedNode, orderCleared chan nodeConfig.Order) {
 
 	orderTx := make(chan nodeConfig.Order)
 	orderRx := make(chan nodeConfig.Order)
 	go bcast.Transmitter(15648, orderTx)
 	go bcast.Receiver(15648, 0, orderRx)
-
-	// var orderstates [4][2] ?? struct{owner, list of acks, timeout}
-
-	// ordermessage {assigned, sender, floor, dir, type[new, ack, confirmed, cleared]}
 
 	const ORDER_SEND_TIMEOUT_MS = 1500
 
@@ -114,7 +57,7 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 				currentOrder.Request.Button = order.Request.Button
 				currentOrder.Acks = nil
 				currentOrder.Cost = order.Cost
-				// currentOrder.Acks = append(currentOrder.Acks, id)
+
 				switch id {
 				case currentOrder.AssignedId:
 					orderOut <- currentOrder
@@ -124,8 +67,6 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 						currentOrder.State = nodeConfig.Order_Confirmed
 						currentOrder.Acks = append(currentOrder.Acks, id)
 						trackConfirmedNode <- currentOrder
-						fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-						fmt.Println("Sent order to tracker from assigned id")
 					}
 				case currentOrder.SenderId:
 					currentOrder.State = nodeConfig.Order_Ack
@@ -133,7 +74,6 @@ func Distribute(id string, orderCh chan nodeConfig.Order, reassignCh chan elevCo
 					currentOrder.State = nodeConfig.Order_Confirmed
 					currentOrder.Acks = append(currentOrder.Acks, id)
 					trackConfirmedNode <- currentOrder
-					fmt.Println("Sent order to tracker from other id")
 				}
 				orderTx <- currentOrder
 			case nodeConfig.Order_Ack:
@@ -240,7 +180,7 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 
 					if time.Since(TimeOfButtonPress) > time.Duration(1000)*time.Millisecond {
 
-						//Each node sends its own data - if request is zero at floor
+						//Each node sends its own data - if request is zero at floor, it should be executed
 						if node.Available && node.Elevator.Requests[flr][btn] == 0 {
 							order.State = nodeConfig.Order_Cleared
 							orderUpdated = true
@@ -301,4 +241,26 @@ func remove(s []nodeConfig.Order, i int) []nodeConfig.Order {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 
+}
+func contains(slice []string, value string) bool {
+	for _, element := range slice {
+		if element == value {
+			return true
+		}
+	}
+	return false
+}
+
+func getUpdatedAckList(id string, current, new []string) []string {
+	temp := make([]string, 0)
+	for _, ack := range new {
+		if !contains(current, ack) {
+			temp = append(temp, ack)
+		}
+	}
+	current = append(current, temp...)
+	if !contains(current, id) {
+		current = append(current, id)
+	}
+	return current
 }
