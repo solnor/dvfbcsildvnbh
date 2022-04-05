@@ -53,8 +53,8 @@ func Elevator_Run() {
 
 	if elevio.GetFloor() == -1 {
 		elevio.SetMotorDirection(config.MD_Down)
-		fsm.Elevator1.Dirn = config.MD_Down
-		fsm.Elevator1.Behaviour = config.EB_Moving
+		fsm.ThisElevator.Dirn = config.MD_Down
+		fsm.ThisElevator.Behaviour = config.EB_Moving
 	}
 	nodeConfig.Node_Init(id)
 	// ThisNode := nodeConfig.NewNode(id)
@@ -67,7 +67,7 @@ func Elevator_Run() {
 	peerUpdateCh := make(chan peers.PeerUpdate)
 	nodeUpdateCh := make(chan nodeConfig.Node)
 
-	buttonE := make(chan config.ButtonEvent)
+	assignRequest := make(chan config.ButtonEvent)
 	reassginOrder := make(chan config.ButtonEvent)
 	assignedOrder := make(chan nodeConfig.Order)
 	orderRx := make(chan nodeConfig.Order)
@@ -77,7 +77,7 @@ func Elevator_Run() {
 	trackOrder := make(chan nodeConfig.Order)
 
 	// go assigner.AssignOrder(nodeUpdateCh, buttonE, orderAssignment, id)
-	go assigner.AssignOrder2(id, buttonE, reassginOrder, assignedOrder)
+	go assigner.AssignOrder(id, assignRequest, reassginOrder, assignedOrder)
 	go distributor.Distribute(id, assignedOrder, reassginOrder, orderRx, peerUpdateCh, orderUpdate, trackOrder, orderCleared)
 	go distributor.TrackOrders(trackOrder, orderCleared, orderUpdate, reassginOrder)
 	// orderRx := make(chan nodeConfig.Order)
@@ -86,63 +86,25 @@ func Elevator_Run() {
 	go peers.Transmitter(15647, id, peerTxEnable)
 	go peers.Receiver(15647, id, peerUpdateCh, nodeUpdateCh)
 
-	go wd.Watchdog(&fsm.Elevator1)
-	fmt.Println("For loop:")
+	go wd.Watchdog(&fsm.ThisElevator)
 	for {
 		select {
-		// case <-nodeUpdateCh:
-		// case n := <-nodeUpdateCh:
-		// nodeIsKnown := false
-		// for _, node := range driverConfig.KnownNodes {
-		// 	if node.Id == n.Id {
-		// 		nodeIsKnown = true
-		// 	}
-		// }
-		// if nodeIsKnown {
-		// 	fmt.Printf("From main.Receiver: id: %s, n.Floor: %d\n", n.Id, n.Elevator.Floor) //n) //n.Elevator.Floor)
-		// 	nodeToUpdate, _, _ := peers.GetNodeWithId(n.Id)
-		// 	*nodeToUpdate = n
-		// } else {
-		// 	peers.OnNewNode2(n)
-		// }
-		// fmt.Printf(" Floor: %d\n", driverConfig.KnownNodes[0].Elevator.Floor)
-		// node, err := peers.GetNodeWithId("10")
-		// if err != 0 {
-
-		// }
-		// case p := <-peerUpdateCh:
-		// 	fmt.Println("Got peer update")
-		// 	// for _,_ := range p.New {
-		// 	// fmt.Println(p.New)
-		// 	// fmt.Println(p.Peers)
-		// 	fmt.Printf(" Peers: %q\n", p.Peers)
-		// 	fmt.Printf(" New: %q\n", p.New)
-		// fmt.Printf(" New: %q\n", driverConfig.KnownNodes[0])
-		// if len(p.New) > 0 && len(p.Peers) >= 1 {
-		// // // // peers.OnNewNode(p)
-		// // // // var node *driverConfig.Node
-		// // // // // ik := 0
-		// // // // node, _ = peers.GetNodeWithId("10")
-		// // // // fmt.Println(node.Elevator.Floor)
-
-		case a := <-drv_buttons:
-			if a.Button == 2 {
-				elevio.SetButtonLamp(a.Button, a.Floor, true)
-				fsm.Fsm_onRequestButtonPress(a.Floor, a.Button)
+		case buttonEvent := <-drv_buttons:
+			if buttonEvent.Button == 2 {
+				elevio.SetButtonLamp(buttonEvent.Button, buttonEvent.Floor, true)
+				fsm.Fsm_onRequestButtonPress(buttonEvent.Floor, buttonEvent.Button)
 			} else {
-				buttonE <- a
+				assignRequest <- buttonEvent
 			}
-			// fsm.Fsm_onRequestButtonPress(a.Floor, a.Button)
-			// fmt.Printf("Cost: %d", cost.TimeToIdle(fsm.Elevator1))
-		case a := <-drv_floors:
-			fsm.Fsm_onFloorArrival(a)
+		case floor := <-drv_floors:
+			fsm.Fsm_onFloorArrival(floor)
 
 		case a := <-drv_obstr:
 			fmt.Printf("%+v\n", a)
 			if a {
-				fsm.Elevator1.Obstruction = true
+				fsm.ThisElevator.Obstruction = true
 			} else {
-				fsm.Elevator1.Obstruction = false
+				fsm.ThisElevator.Obstruction = false
 			}
 
 		case a := <-drv_stop:

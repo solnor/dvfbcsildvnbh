@@ -22,7 +22,7 @@ var ThisNode Node
 func Node_Init(id string) {
 	KnownNodesTable = make(map[string]*Node)
 	ThisNode = NewNode(id)
-	ThisNode.Elevator = fsm.Elevator1
+	ThisNode.Elevator = fsm.ThisElevator
 	// nodeConfig.KnownNodes = make(map[string])
 	// nodeConfig.KnownNodes = append(nodeConfig.KnownNodes, &thisNode) //MOVE THIS
 	KnownNodesMutex.Lock()

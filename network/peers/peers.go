@@ -33,7 +33,17 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 			node := nodeConfig.KnownNodesTable[id]
 			nodeConfig.KnownNodesMutex.RUnlock()
 			if node != nil {
-				node.Elevator = fsm.Elevator1
+				node.Elevator = fsm.ThisElevator
+
+				for floor, floors := range node.Elevator.Requests {
+					for button, _ := range floors {
+						if node.Elevator.Requests[floor][button] == 1 {
+							node.Elevator.Requests[floor][button] = 0
+						} else {
+							node.Elevator.Requests[floor][button] = 1
+						}
+					}
+				}
 				nodeUpdateTx <- *node
 			}
 		}
@@ -63,21 +73,21 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
 					nodeConfig.KnownNodesMutex.Unlock()
 				} else {
-					if node.Available {
-						nodeConfig.KnownNodesMutex.Lock()
-						nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
-						nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
-						nodeConfig.KnownNodesMutex.Unlock()
-					} else {
-						nodeConfig.KnownNodesMutex.Lock()
-						nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
-						// for floor, floors := range Elevator {
-						// 	for button, _ := range floors {
-						// 	}
-						// }
-						// nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
-						nodeConfig.KnownNodesMutex.Unlock()
-					}
+					// if node.Available {
+					nodeConfig.KnownNodesMutex.Lock()
+					nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
+					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
+					nodeConfig.KnownNodesMutex.Unlock()
+					// } else {
+					// 	nodeConfig.KnownNodesMutex.Lock()
+					// 	nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
+					// 	// for floor, floors := range Elevator {
+					// 	// 	for button, _ := range floors {
+					// 	// 	}
+					// 	// }
+					// 	// nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
+					// 	nodeConfig.KnownNodesMutex.Unlock()
+					// }
 				}
 			} else {
 				OnNewNode(nodeUpdate)
@@ -152,14 +162,3 @@ func OnNewNode(newNode nodeConfig.Node) {
 	nodeConfig.KnownNodesTable[newNode.Id] = &node
 	nodeConfig.KnownNodesMutex.Unlock()
 }
-
-// func GetNodeWithId(id string) (*nodeConfig.Node, int, int) {
-// 	for i, node := range nodeConfig.KnownNodes {
-// 		if id == node.Id {
-// 			// fmt.Printf("GetNodeWithId: %s\n", node.Id)
-// 			return node, i, 0
-// 		}
-// 	}
-// 	// fmt.Println("Uppppppsouhd")
-// 	return nil, 0, 1 //errors.New("Could not find node\n")
-// }

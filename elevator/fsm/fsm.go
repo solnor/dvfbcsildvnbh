@@ -14,17 +14,17 @@ import (
 	"time"
 )
 
-var Elevator1 config.Elevator
+var ThisElevator config.Elevator
 
 func Fsm_init() {
-	Elevator1 = config.NewElevator()
-	Elevator1.Floor = -1
-	Elevator1.Dirn = config.MD_Stop
-	Elevator1.Behaviour = config.EB_Idle
-	Elevator1.Obstruction = false
+	ThisElevator = config.NewElevator()
+	ThisElevator.Floor = -1
+	ThisElevator.Dirn = config.MD_Stop
+	ThisElevator.Behaviour = config.EB_Idle
+	ThisElevator.Obstruction = false
 
-	Elevator1.Config.ClearRequestVariant = config.CV_All
-	Elevator1.Config.DoorOpenDuration_s = 3
+	ThisElevator.Config.ClearRequestVariant = config.CV_All
+	ThisElevator.Config.DoorOpenDuration_s = 3
 }
 
 // var DoorTimer = time.NewTimer(time.Duration(3 * time.Second))
@@ -65,33 +65,33 @@ func Fsm_onRequestButtonPress(btn_floor int, btn_type config.ButtonType) {
 	fmt.Printf("\n\n%s(%d, %v)\n", GetFunctionname(Fsm_onRequestButtonPress), btn_floor, btn_type)
 	//Elevator_print(Elevator1)
 
-	switch Elevator1.Behaviour {
+	switch ThisElevator.Behaviour {
 	case config.EB_DoorOpen:
-		if Requests_shouldClearImmediately(Elevator1, btn_floor, btn_type) {
+		if Requests_shouldClearImmediately(ThisElevator, btn_floor, btn_type) {
 			//timer_start.reset(elevator.Config.DoorOpenDuration_s)
 			timer.Reset(time.Duration(config.DOOR_OPEN_TIME_S) * time.Second)
 		} else {
-			Elevator1.Requests[btn_floor][btn_type] = 1
+			ThisElevator.Requests[btn_floor][btn_type] = 1
 		}
 		break
 	case config.EB_Moving:
-		Elevator1.Requests[btn_floor][btn_type] = 1
+		ThisElevator.Requests[btn_floor][btn_type] = 1
 		break
 	case config.EB_Idle:
-		Elevator1.Requests[btn_floor][btn_type] = 1
+		ThisElevator.Requests[btn_floor][btn_type] = 1
 		var a config.Action
-		a = Requests_nextAction(Elevator1)
-		Elevator1.Dirn = a.Dirn
-		Elevator1.Behaviour = a.Behaviour
+		a = Requests_nextAction(ThisElevator)
+		ThisElevator.Dirn = a.Dirn
+		ThisElevator.Behaviour = a.Behaviour
 		switch a.Behaviour {
 		case config.EB_DoorOpen:
 			SetDoorOpenLamp(true)
 			timer.Reset(time.Duration(config.DOOR_OPEN_TIME_S) * time.Second)
-			Elevator1 = Requests_clearAtCurrentFloor(Elevator1, Requests_onClearedRequest)
+			ThisElevator = Requests_clearAtCurrentFloor(ThisElevator, Requests_onClearedRequest)
 			break
 		case config.EB_Moving:
 			// if !Obstruction
-			SetMotorDirection(Elevator1.Dirn)
+			SetMotorDirection(ThisElevator.Dirn)
 			// fmt.Printf("Set motor direction to %v\n", Elevator1.Dirn)
 			break
 		case config.EB_Idle:
@@ -100,8 +100,8 @@ func Fsm_onRequestButtonPress(btn_floor int, btn_type config.ButtonType) {
 		break
 	}
 
-	// setAllLights(Elevator1) //// Commented out due to button light contract
-	SetCabLights(Elevator1)
+	// setAllLights(ThisElevator) //// Commented out due to button light contract
+	SetCabLights(ThisElevator)
 	//fmt.Printf("\nNew State: \n")
 	//Elevator_print(Elevator1)
 }
@@ -109,20 +109,20 @@ func Fsm_onRequestButtonPress(btn_floor int, btn_type config.ButtonType) {
 func Fsm_onFloorArrival(newFloor int) {
 	fmt.Printf("\n\n%s(%d)\n\n", GetFunctionname(Fsm_onFloorArrival), newFloor)
 	//Elevator_print(Elevator1)
-	Elevator1.Floor = newFloor
-	SetFloorIndicator(Elevator1.Floor)
+	ThisElevator.Floor = newFloor
+	SetFloorIndicator(ThisElevator.Floor)
 
-	switch Elevator1.Behaviour {
+	switch ThisElevator.Behaviour {
 	case config.EB_Moving:
-		if Requests_shouldStop(Elevator1) {
-			Elevator1.Dirn = config.MD_Stop
-			SetMotorDirection(Elevator1.Dirn)
+		if Requests_shouldStop(ThisElevator) {
+			ThisElevator.Dirn = config.MD_Stop
+			SetMotorDirection(ThisElevator.Dirn)
 			SetDoorOpenLamp(true)
-			Elevator1 = Requests_clearAtCurrentFloor(Elevator1, Requests_onClearedRequest)
+			ThisElevator = Requests_clearAtCurrentFloor(ThisElevator, Requests_onClearedRequest)
 			//timer_start(elevator.Config.DoorOpenDuration_s)
 			timer.Reset(time.Duration(config.DOOR_OPEN_TIME_S) * time.Second)
-			SetAllLights(Elevator1)
-			Elevator1.Behaviour = config.EB_DoorOpen
+			SetAllLights(ThisElevator)
+			ThisElevator.Behaviour = config.EB_DoorOpen
 		}
 		break
 	default:
@@ -136,29 +136,29 @@ func Fsm_onDoorTimeout() {
 	fmt.Printf("\n\n%s()\n\n", GetFunctionname(Fsm_onDoorTimeout))
 	//Elevator_print(Elevator1)
 
-	switch Elevator1.Behaviour {
+	switch ThisElevator.Behaviour {
 	case config.EB_DoorOpen:
 		// if Obstruction {
 		// 	break
 		// }
 		var a config.Action
-		a = Requests_nextAction(Elevator1)
-		Elevator1.Dirn = a.Dirn
-		Elevator1.Behaviour = a.Behaviour
-		switch Elevator1.Behaviour {
+		a = Requests_nextAction(ThisElevator)
+		ThisElevator.Dirn = a.Dirn
+		ThisElevator.Behaviour = a.Behaviour
+		switch ThisElevator.Behaviour {
 		case config.EB_DoorOpen:
 			//timer_start(elevator.Config.DoorOpenDuration_s)
 			timer.Reset(time.Duration(config.DOOR_OPEN_TIME_S) * time.Second)
 
-			Elevator1 = Requests_clearAtCurrentFloor(Elevator1, Requests_onClearedRequest)
-			SetAllLights(Elevator1)
+			ThisElevator = Requests_clearAtCurrentFloor(ThisElevator, Requests_onClearedRequest)
+			SetAllLights(ThisElevator)
 			break
 		case config.EB_Moving:
 			SetDoorOpenLamp(false)
-			SetMotorDirection(Elevator1.Dirn)
+			SetMotorDirection(ThisElevator.Dirn)
 		case config.EB_Idle:
 			SetDoorOpenLamp(false)
-			SetMotorDirection(Elevator1.Dirn)
+			SetMotorDirection(ThisElevator.Dirn)
 			break
 		}
 

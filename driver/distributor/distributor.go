@@ -220,44 +220,26 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 				iterator++
 			} else {
 				iterator = 0
-				// fmt.Printf("Iterator: %d\n", iterator)
 			}
-			// btn++
-			// if floor == len(localOrders)
+
 			order := confirmedOrders[iterator]
-			// fmt.Printf("Floor: %d\n", floor)
-			// fmt.Printf("Button: %d\n", btn)
 			orderUpdated := false
 			orderReassigned := false
 
 			switch order.State {
 			case nodeConfig.Order_Ack:
-				// TimeOfButtonPress := order.Timestamp
-				// if time.Since(TimeOfButtonPress) > time.Duration(ORDER_SEND_TIMEOUT_MS)*time.Millisecond {
-				// 	fmt.Printf("[%s]", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))
-				// 	fmt.Println("Order timeout reached - clearing order")
-				// 	// currentOrder = ClearOrder()
-				// 	order.State = nodeConfig.Order_Cleared
-				// }
 			case nodeConfig.Order_Confirmed:
-				// node, _, err := peers.GetNodeWithId(order.AssignedId)
 				flr := order.Request.Floor
 				btn := order.Request.Button
 				TimeOfButtonPress := order.Timestamp
+
 				var reassignTime int64 = getReassignmentTimeout(order)
 
 				nodeConfig.KnownNodesMutex.RLock()
 				node := nodeConfig.KnownNodesTable[order.AssignedId]
 				nodeConfig.KnownNodesMutex.RUnlock()
 				if node != nil {
-					// fmt.Println(node.Elevator.Requests)
-					// fmt.Printf("Pointeeeeer %p\n", *node)
-					// fmt.Printf("Node %s has req: %d\n", node.Id, node.Elevator.Requests[flr][btn])
-					// fmt.Printf("req: %d\n", node.Elevator.Requests[floor][btn])
-					// fmt.Printf("Currently assigned id: %s\n",order.AssignedId)
-					// fmt.Printf("Currently floor: %d\n\n",node.Elevator.Floor)
-
-					confirmedOrder <- makeOrderEvent(flr, btn, true) // Should only be set once
+					confirmedOrder <- makeOrderEvent(flr, btn, true) // TODO: Should only be set once
 					// && time.Since(TimeOfButtonPress) < time.Duration(reassignTime*1000)*time.Millisecond
 
 					if time.Since(TimeOfButtonPress) > time.Duration(1000)*time.Millisecond {
@@ -269,6 +251,8 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 						// var n nodeConfig.Node
 						// fmt.Println(n.Available)
 						// fmt.Println("Imellom")
+
+						//Each
 						if node.Available && node.Elevator.Requests[flr][btn] == 0 {
 							order.State = nodeConfig.Order_Cleared
 							orderUpdated = true
