@@ -33,7 +33,7 @@ func Node_Init(id string) {
 func NewNode(id string) Node {
 	var n Node
 	n.Id = id
-	n.Available = true
+	n.Available = false
 	n.Elevator = elevConfig.NewElevator()
 	return n
 }

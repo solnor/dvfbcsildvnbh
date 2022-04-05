@@ -64,10 +64,12 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
 					nodeConfig.KnownNodesMutex.Unlock()
 				} else {
-					nodeConfig.KnownNodesMutex.Lock()
-					nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
-					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
-					nodeConfig.KnownNodesMutex.Unlock()
+					if node.Available {
+						nodeConfig.KnownNodesMutex.Lock()
+						nodeConfig.KnownNodesTable[id].Available = nodeUpdate.Available
+						nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
+						nodeConfig.KnownNodesMutex.Unlock()
+					}
 				}
 			} else {
 				OnNewNode(nodeUpdate)
