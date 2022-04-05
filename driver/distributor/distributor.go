@@ -175,13 +175,17 @@ func TrackOrders(newOrderToTrack, orderCleared chan nodeConfig.Order, confirmedO
 				node := nodeConfig.KnownNodesTable[order.AssignedId]
 				nodeConfig.KnownNodesMutex.RUnlock()
 				if node != nil {
-
+					order.NumRequests++
+					order.SumRequests += float64(node.Elevator.Requests[flr][btn])
+					order.AvgRequest = order.SumRequests / order.NumRequests
 					confirmedOrder <- makeOrderEvent(flr, btn, true) // TODO: Should only be set once
 
-					if time.Since(TimeOfButtonPress) > time.Duration(1000)*time.Millisecond {
+					if time.Since(TimeOfButtonPress) > time.Duration(5000)*time.Millisecond {
 
 						//Each node sends its own data - if request is zero at floor, it should be executed
-						if node.Available && node.Elevator.Requests[flr][btn] == 0 {
+						// if node.Available && node.Elevator.Requests[flr][btn] == 0 {
+						if node.Available && order.AvgRequest <= 0.5 {
+
 							order.State = nodeConfig.Order_Cleared
 							orderUpdated = true
 							fmt.Printf("[%s]: ", time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"))

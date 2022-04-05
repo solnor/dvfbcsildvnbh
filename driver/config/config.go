@@ -45,7 +45,11 @@ type Order struct {
 	Timestamp  time.Time
 	Cost       int64
 	Acks       []string
-	State OrderType
+	State      OrderType
+
+	AvgRequest  float64 //Last minute fix because of unstable request readings
+	NumRequests float64
+	SumRequests float64
 }
 
 type OrderUpdate struct {

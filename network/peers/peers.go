@@ -3,7 +3,6 @@ package peers
 import (
 	nodeConfig "driver/config"
 	"elevator/fsm"
-	"fmt"
 	"network/bcast"
 	"sort"
 	"time"
@@ -26,7 +25,7 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 	for {
 		select {
 		case enable = <-transmitEnable:
-		case <-time.After(150 * time.Millisecond):
+		case <-time.After(250 * time.Millisecond):
 		}
 		if enable {
 
@@ -70,7 +69,6 @@ func Receiver(port int, thisId string, peerUpdateCh chan<- PeerUpdate, nodeUpdat
 			nodeConfig.KnownNodesMutex.RUnlock()
 
 			if node != nil {
-				fmt.Println(node.Elevator.Requests)
 				if node.Id == thisId {
 					nodeConfig.KnownNodesMutex.Lock()
 					nodeConfig.KnownNodesTable[id].Elevator = nodeUpdate.Elevator
